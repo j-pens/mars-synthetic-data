@@ -144,19 +144,19 @@ def generate_point_cloud(
                 normal = normal[mask]
 
             # mask out sky from points and rgbs
-            semantic_mask = batch["semantics"][..., 0]
-            sky_idx = pipeline.datamanager.train_dataset.metadata[
-                "semantics"
-            ].classes.index("Sky")
-            sky_value = (
-                pipeline.datamanager.train_dataset.metadata["semantics"]
-                .colors[sky_idx]
-                .to(batch["semantics"].device)
-            )
-            mask = ~(semantic_mask == sky_value)
-            mask = mask[..., 0]
-            point = point[mask]
-            rgb = rgb[mask]
+            # semantic_mask = batch["semantics"][..., 0]
+            # sky_idx = pipeline.datamanager.train_dataset.metadata[
+            #     "semantics"
+            # ].classes.index("Sky")
+            # sky_value = (
+            #     pipeline.datamanager.train_dataset.metadata["semantics"]
+            #     .colors[sky_idx]
+            #     .to(batch["semantics"].device)
+            # )
+            # mask = ~(semantic_mask == sky_value)
+            # mask = mask[..., 0]
+            # point = point[mask]
+            # rgb = rgb[mask]
 
             if use_bounding_box:
                 comp_l = torch.tensor(bounding_box_min, device=point.device)
@@ -181,6 +181,7 @@ def generate_point_cloud(
 
     points = torch.cat(points, dim=0)
     rgbs = torch.cat(rgbs, dim=0)
+    view_directions = torch.cat(view_directions, dim=0).cpu()
 
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points.double().cpu().numpy())
@@ -282,7 +283,7 @@ class ExportPointCloud(Exporter):
             rgb_output_name=self.rgb_output_name,
             depth_output_name=self.depth_output_name,
             reorient_normals=self.reorient_normals,
-            normal_output_name="pred_normals"
+            normal_output_name=self.normal_output_name
             if self.normal_method == "model_output"
             else None,
             use_bounding_box=self.use_bounding_box,

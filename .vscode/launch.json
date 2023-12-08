@@ -5,23 +5,47 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "control group",
+      "type": "python",
+      "request": "launch",
+      "program": "scripts/ply_exporter.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "0"
+      },
+      "args": [
+        "--load-config",
+        "outputs/kitti-recon-remove-bg-bug-fix/mars-kitti-car-depth-recon/2023-10-28_013915/config.yml",
+        "--output-dir",
+        "renders/ply-5-260-default/",
+      ]
+    },
+    {
       "name": "debug",
       "type": "python",
       "request": "launch",
-      "program": "nerfstudio/nerfstudio/scripts/train.py",
+      "program": "scripts/ply_exporter.py",
       "console": "integratedTerminal",
-      "justMyCode": true,
+      "justMyCode": false,
       "env": {
-        "CUDA_VISIBLE_DEVICES": "3"
+        "CUDA_VISIBLE_DEVICES": "0"
       },
       "args": [
-        "mars-kitti-car-depth-recon",
-        "--data",
-        "/DATA_EDS/wuzr/data/kitti-MOT/training/image_02/0006",
-        "--experiment_name",
-        "Mars KITTI-0006",
-        "--vis",
-        "wandb",
+        "--load-config",
+        "outputs/kitti-recon-remove-bg-bug-fix/mars-kitti-car-depth-recon/2023-10-28_013915/config.yml",
+        // "outputs/kitti-recon-65-120/mars-kitti-car-depth-recon/2023-10-30_212654/config.yml",
+        "--output-dir",
+        "outputs/ply-5-260-1/",
+        "--normal-method",
+        "open3d",
+        // "mars-kitti-car-depth-recon",
+        // "--data",
+        // "/DATA_EDS/wuzr/data/kitti-MOT/training/image_02/0006",
+        // "--experiment_name",
+        // "Mars KITTI-0006",
+        // "--vis",
+        // "wandb",
         // "mars-kitti-car-depth-nvs",
         // "--load-dir",
         // "/data1/chenjt/experiment/kitti-nvs-75/mars-kitti-car-depth-nvs/2023-06-29_153047/nerfstudio_models",
