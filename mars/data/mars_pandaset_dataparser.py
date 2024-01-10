@@ -840,6 +840,8 @@ class MarsPandasetParser(DataParser):
 
 
         dataset = DataSet(basedir)
+        print(dataset.sequences())
+
         seq = dataset[self.seq_name]
         seq.load_camera()
         seq.load_lidar()
