@@ -992,6 +992,8 @@ class MarsPandasetParser(DataParser):
         # )
 
         # Get Object poses
+        print('seq dir:', seq._directory)
+        seq.load_cuboids()
         CONSOLE.print(len(seq.cuboids.data))
         visible_objects_, objects_meta_ = get_obj_pose_tracking_pandaset(seq.cuboids, self.selected_frames, np.eye(4), self.cameras_name_list, seq.camera, seq.lidar, self.coordinates_conversion)
             
