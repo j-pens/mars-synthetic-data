@@ -30,7 +30,7 @@ include = ["mars*"]
 [project.entry-points.'nerfstudio.method_configs']
 mars-vkitti-car-depth-recon-semantic = 'mars.cicai_configs:VKITTI_Recon_Mars_Car_Depth_Semantic'
 mars-kitti-car-depth-recon = 'mars.cicai_configs:KITTI_Recon_Mars_Car_Depth'
-mars-pandaset-car-depth-recon = 'mars.cicai_configs:PANDASET_Recon_Mars_Car_Depth'
+mars-pandaset-car-depth-recon = 'mars.synthetic_data_configs:PANDASET_Recon_Mars_Car_Depth'
 mars-kitti-car-depth-nvs = 'mars.cicai_configs:KITTI_NVS_Mars_Car_Depth'
 mars-vkitti-car-depth-recon = 'mars.cicai_configs:VKITTI_Recon_Mars_Car_Depth'
 mars-vkitti-car-depth-nvs = 'mars.cicai_configs:VKITTI_NVS_Mars_Car_Depth'
