@@ -836,6 +836,8 @@ class MarsPandasetParser(DataParser):
             alpha_color_tensor = None
 
         basedir = str(self.data)
+        print(basedir)
+
 
         dataset = DataSet(basedir)
         seq = dataset[self.seq_name]
