@@ -27,6 +27,67 @@ STEPS_PER_SAVE = 2000 # 2000 modif Pierre
 STEPS_PER_EVAL_IMAGE = 500 # 500#500 Pierre modif
 STEPS_PER_EVAL_ALL_IMAGES = 5000
 
+
+
+PANDASET_Recon_Mars_Car_Depth = MethodSpecification(
+    config=TrainerConfig(
+        method_name="mars-pandaset-car-depth-recon",
+        steps_per_eval_image=STEPS_PER_EVAL_IMAGE,
+        steps_per_eval_all_images=STEPS_PER_EVAL_ALL_IMAGES,
+        steps_per_save=STEPS_PER_SAVE,
+        max_num_iterations=MAX_NUM_ITERATIONS,
+        save_only_latest_checkpoint=False,
+        mixed_precision=False,
+        use_grad_scaler=False,
+        log_gradients=True,
+        pipeline=MarsPipelineConfig(
+            datamanager=MarsDataManagerConfig(
+                dataparser=MarsPandasetDataParserConfig(
+                    use_car_latents=True,
+                    use_depth=True, # TODO test pierre
+                    car_object_latents_path=Path(
+                        "/DATA_EDS/liuty/ckpts/pretrain/car_nerf/latent_codes_car_van_truck.pt"
+                    ),
+                    split_setting="reconstruction",
+                    car_nerf_state_dict_path=Path("/DATA_EDS/liuty/ckpts/pretrain/car_nerf/epoch_670.ckpt"),
+                    scale_factor=0.01 #0.1,
+                ),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+                camera_optimizer=CameraOptimizerConfig(mode="SO3xR3", optimizer=AdamOptimizerConfig(lr=6e-4, eps=1e-8, weight_decay=1e-2)),
+            ),
+            model=SceneGraphModelConfig(
+                background_model=NerfactoModelConfig(),
+                object_model_template=CarNeRFModelConfig(_target=CarNeRF),
+                object_representation="class-wise",
+                object_ray_sample_strategy="warmup", # "warmup", #"remove-bg", # Pierre test
+                mono_depth_loss_mult=0.01,
+                depth_loss_mult=0,
+            ),
+        ),
+        optimizers={
+            "background_model": {
+                "optimizer": RAdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-5, max_steps=200000),
+            },
+            "learnable_global": {
+                "optimizer": RAdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-5, max_steps=200000),
+            },
+            "object_model": {
+                "optimizer": RAdamOptimizerConfig(lr=5e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-5, max_steps=200000),
+            },
+        },
+        # viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="wandb",
+    ),
+    description="Neural Scene Graph implementation with vanilla-NeRF model for backgruond and object models.",
+)
+
+
+
+
 VKITTI_Recon_Mars_Car_Depth_Semantic = MethodSpecification(
     config=TrainerConfig(
         method_name="mars-vkitti-car-depth-recon-semantic",
