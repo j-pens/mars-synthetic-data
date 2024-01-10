@@ -219,6 +219,7 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             uuid_to_sibling_uuid = {}
             cuboid_dimensions = {}
             for frame_id in range(start_frame, end_frame + 1):
+                CONSOLE.print(frame_id)
                 cuboids_frame = cuboids[frame_id]
                 for cuboid_idx in range(len(cuboids_frame)):
                     cuboid = cuboids_frame.iloc[cuboid_idx]
