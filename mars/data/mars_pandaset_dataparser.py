@@ -219,7 +219,6 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             uuid_to_sibling_uuid = {}
             cuboid_dimensions = {}
             for frame_id in range(start_frame, end_frame + 1):
-                CONSOLE.print(frame_id)
                 cuboids_frame = cuboids[frame_id]
                 for cuboid_idx in range(len(cuboids_frame)):
                     cuboid = cuboids_frame.iloc[cuboid_idx]
@@ -836,11 +835,9 @@ class MarsPandasetParser(DataParser):
             alpha_color_tensor = None
 
         basedir = str(self.data)
-        print(basedir)
 
 
         dataset = DataSet(basedir)
-        print(dataset.sequences())
 
         seq = dataset[self.seq_name]
         seq.load_camera()
@@ -992,12 +989,6 @@ class MarsPandasetParser(DataParser):
         # )
 
         # Get Object poses
-        print('seq dir:', seq._directory)
-        seq.load_cuboids()
-        seq.cuboids.load()
-        CONSOLE.print(len(seq.cuboids.data))
-        CONSOLE.print(seq.cuboids._directory)
-        CONSOLE.print(seq.cuboids._data_structure)
         visible_objects_, objects_meta_ = get_obj_pose_tracking_pandaset(seq.cuboids, self.selected_frames, np.eye(4), self.cameras_name_list, seq.camera, seq.lidar, self.coordinates_conversion)
             
         # # Align Axis with vkitti axis
