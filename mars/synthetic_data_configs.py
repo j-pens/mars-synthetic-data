@@ -93,7 +93,7 @@ PANDASET_Recon_Mars_Nerfacto_object_wise = MethodSpecification(
         steps_per_eval_all_images=STEPS_PER_EVAL_ALL_IMAGES,
         steps_per_save=STEPS_PER_SAVE,
         max_num_iterations=MAX_NUM_ITERATIONS,
-        save_only_latest_checkpoint=False,
+        save_only_latest_checkpoint=True,
         mixed_precision=False,
         use_grad_scaler=False,
         log_gradients=True,
@@ -111,13 +111,13 @@ PANDASET_Recon_Mars_Nerfacto_object_wise = MethodSpecification(
                 ),
                 train_num_rays_per_batch=4096,
                 eval_num_rays_per_batch=4096,
-                camera_optimizer=CameraOptimizerConfig(mode="SO3xR3", optimizer=RAdamOptimizerConfig(lr=6e-4, eps=1e-8, weight_decay=1e-2)),
+                camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
                 background_model=NerfactoModelConfig(),
                 object_model_template=NerfactoModelConfig(),
                 object_representation="object-wise",
-                object_ray_sample_strategy="warmup", # "warmup", #"remove-bg", # Pierre test
+                object_ray_sample_strategy="remove-bg", # "warmup", #"remove-bg", # Pierre test
                 mono_depth_loss_mult=0.01,
                 depth_loss_mult=0,
             ),
