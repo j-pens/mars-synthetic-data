@@ -18,3 +18,25 @@ class SyntheticDataPipeline(MarsPipeline):
     pass
 
     # TODO: Implement/ Adjust pipeline
+
+def get_background_model(checkpoint_path):
+    """Extract background model from MARS checkpoint."""
+    pass
+
+def get_object_models(checkpoint_path):
+    """Extract object models from MARS checkpoint."""
+    pass
+
+
+
+@dataclass 
+class SyntheticSceneGraphModelConfig(SceneGraphModelConfig):
+    """Configuration for the synthetic scene graph model."""
+
+    _target: Type = field(default_factory=lambda: SyntheticSceneGraphModel)
+
+
+class SyntheticSceneGraphModel(SceneGraphModel):
+    """Synthetic scene graph model."""
+    
+    pass
