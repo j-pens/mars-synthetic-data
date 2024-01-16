@@ -715,7 +715,7 @@ class MarsPandasetDataParserConfig(DataParserConfig):
     """alpha color of background"""
     first_frame: int = 0
     """specifies the beginning of a sequence if not the complete scene is taken as Input"""
-    last_frame: int = 9
+    last_frame: int = 79
     """specifies the end of a sequence"""
     use_object_properties: bool = True
     """ use pose and properties of visible objects as an input """
