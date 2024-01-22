@@ -12,7 +12,7 @@ from mars.data.mars_vkitti_dataparser import MarsVKittiDataParserConfig
 from mars.mars_pipeline import MarsPipelineConfig
 from mars.models.car_nerf import CarNeRF, CarNeRFModelConfig
 from mars.models.mipnerf import MipNerfModel
-from mars.models.nerfacto import NerfactoModelConfig
+from mars.models.nerfacto import NerfactoModelConfig as NerfactoModelConfigWithLatentEmbeddingOption
 from mars.models.scene_graph import SceneGraphModelConfig
 from mars.models.semantic_nerfw import SemanticNerfWModelConfig
 from mars.models.vanilla_nerf import NeRFModel, VanillaModelConfig
@@ -57,7 +57,7 @@ PANDASET_Recon_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="SO3xR3", optimizer=RAdamOptimizerConfig(lr=6e-4, eps=1e-8, weight_decay=1e-2)),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="warmup", # "warmup", #"remove-bg", # Pierre test
@@ -114,8 +114,8 @@ PANDASET_Recon_Mars_Nerfacto_object_wise = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
-                object_model_template=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
+                object_model_template=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_representation="object-wise",
                 object_ray_sample_strategy="remove-bg", # "warmup", #"remove-bg", # Pierre test
                 mono_depth_loss_mult=0.01,
@@ -230,7 +230,7 @@ KITTI_Recon_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
@@ -287,7 +287,7 @@ PANDASET_Recon_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="warmup", #"remove-bg", # Pierre test
@@ -342,7 +342,7 @@ Ablation_no_depth_kitti = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
@@ -397,7 +397,7 @@ KITTI_NVS_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
@@ -453,7 +453,7 @@ VKITTI_Recon_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
@@ -502,7 +502,7 @@ VKITTI_NVS_Mars_Car_Depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
@@ -657,7 +657,7 @@ Ablation_object_wise_NeRF = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=VanillaModelConfig(
                     _target=NeRFModel,
                     num_coarse_samples=32,
@@ -710,7 +710,7 @@ Ablation_object_wise_MipNeRF = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=VanillaModelConfig(
                     _target=MipNerfModel,
                     num_coarse_samples=48,
@@ -759,8 +759,8 @@ Ablation_object_wise_NeRFacto = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
-                object_model_template=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
+                object_model_template=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_representation="object-wise",
                 object_ray_sample_strategy="remove-bg",
             ),
@@ -808,7 +808,7 @@ Ablation_class_wise_NeRF = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=VanillaModelConfig(
                     _target=NeRFModel,
                     num_coarse_samples=32,
@@ -861,7 +861,7 @@ Ablation_class_wise_MipNeRF = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=VanillaModelConfig(
                     _target=MipNerfModel,
                     num_coarse_samples=48,
@@ -914,8 +914,8 @@ Ablation_class_wise_NeRFacto = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
-                object_model_template=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
+                object_model_template=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
             ),
@@ -963,7 +963,7 @@ Ablation_warmup = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="warmup",
@@ -1013,7 +1013,7 @@ Ablation_none_ray_sample = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="none",
@@ -1062,7 +1062,7 @@ Ablation_no_depth = MethodSpecification(
                 camera_optimizer=CameraOptimizerConfig(mode="off"),
             ),
             model=SceneGraphModelConfig(
-                background_model=NerfactoModelConfig(),
+                background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
                 object_ray_sample_strategy="remove-bg",
