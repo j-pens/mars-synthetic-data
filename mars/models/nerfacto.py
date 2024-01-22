@@ -28,7 +28,7 @@ from torchmetrics import PeakSignalNoiseRatio
 from torchmetrics.functional import structural_similarity_index_measure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
-from mars.fields.nerfacto_field import NerfactoField
+from mars.fields.nerfacto_field import NerfactoField as NerfactoFieldWithLatentEmbedding
 from nerfstudio.cameras.rays import RayBundle, RaySamples
 from nerfstudio.engine.callbacks import (
     TrainingCallback,
@@ -168,7 +168,7 @@ class NerfactoModel(Model):
 
         self.num_objs = int(max(self.object_meta["scene_obj"])) + 1 if self.object_meta is not None else 0
         # Fields
-        self.field = NerfactoField(
+        self.field = NerfactoFieldWithLatentEmbedding(
             self.scene_box.aabb,
             hidden_dim=self.config.hidden_dim,
             num_levels=self.config.num_levels,
