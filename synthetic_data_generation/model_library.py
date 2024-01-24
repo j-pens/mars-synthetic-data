@@ -89,6 +89,18 @@ class MarsPipelineCheckpoint:
     def get_background_model_keys(self):
         return [k for k in self.state['pipeline'] if 'background_model' in k]
 
+    def get_object_model_state(self, object_model_id):
+        """Get state for single object model."""
+        object_model_keys = self.get_object_model_keys(object_model_id)
+        single_object_model_state = {'.'.join(k.split('.')[3:]): v for k, v in self.state['pipeline'].items() if k in object_model_keys}
+        return single_object_model_state
+
+    def get_background_model_state(self):
+        """Get background model state."""
+        background_model_keys = self.get_background_model_keys()
+        background_model_state = {'.'.join(k.split('.')[2:]): v for k, v in self.state['pipeline'].items() if k in background_model_keys}
+        return background_model_state
+
 
 @dataclass
 class ModelLibrary:
@@ -141,8 +153,9 @@ class ModelLibrary:
         single_object_model_keys = mars_checkpoint.get_object_model_keys(next(iter(object_model_ids)))
         print(single_object_model_keys)
 
-        single_object_model_state = {'.'.join(k.split('.')[3:]): v for k, v in state['pipeline'].items() if k in single_object_model_keys}
+        single_object_model_state = mars_checkpoint.get_object_model_state(next(iter(object_model_ids)))
 
+        # TODO: Get object scene box scale from dataparser
         # object scene box might vary
         aabb_scale = 1.0
         scene_box = SceneBox(
@@ -150,13 +163,18 @@ class ModelLibrary:
                 [[-aabb_scale, -aabb_scale, -aabb_scale], [aabb_scale, aabb_scale, aabb_scale]], dtype=torch.float32
             )
         )
-        num_train_data = 40
 
+        num_train_data = mars_checkpoint.config.pipeline.datamanager.dataparser.last_frame - mars_checkpoint.config.pipeline.datamanager.dataparser.first_frame
+        assert num_train_data == 40
+
+        # TODO: Use config from pipeline
         object_model_config = NerfactoModelConfig(far_plane=150.0, background_color='black')
 
         obj_model = object_model_config.setup(scene_box=scene_box, num_train_data=num_train_data)
         obj_model.load_state_dict(single_object_model_state)
 
+
+        # TODO: Get background scene box scale from dataparser
         # bg scale usually 1.0
         bg_scale = 1.0
         bg_scene_box = SceneBox(
@@ -165,8 +183,9 @@ class ModelLibrary:
             )
         )
 
-        background_model_state = {'.'.join(k.split('.')[2:]): v for k, v in state['pipeline'].items() if k in background_model_keys}
+        background_model_state = mars_checkpoint.get_background_model_state()
 
+        # TODO: Use config from pipeline
         background_model_config = NerfactoModelConfig(far_plane=150.0, background_color='black')
         background_model = background_model_config.setup(scene_box=bg_scene_box, num_train_data=num_train_data)
         background_model.load_state_dict(background_model_state)
