@@ -58,7 +58,15 @@ class MarsDataManager(VanillaDataManager):  # pylint: disable=abstract-method
         c = ray_indices[:, 0]  # camera indices
         y = ray_indices[:, 1]  # row indices
         x = ray_indices[:, 2]  # col indices
-        object_rays_info = self.train_dataset.metadata["obj_info"][c, y, x]
+        object_rays_info = self.train_dataset.metadata["obj_info"][c]
+
+        # image_width = self.train_dataset.cameras[c].width
+        # image_height = self.train_dataset.cameras[c].height
+        # print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
+
+        # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_width[0], dim=2)
+        # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_height[0], dim=2)
+
         object_rays_info = object_rays_info.reshape(object_rays_info.shape[0], -1)
         ray_bundle.metadata["object_rays_info"] = object_rays_info.detach()
         return ray_bundle, batch
@@ -74,7 +82,15 @@ class MarsDataManager(VanillaDataManager):  # pylint: disable=abstract-method
         c = ray_indices[:, 0]  # camera indices
         y = ray_indices[:, 1]  # row indices
         x = ray_indices[:, 2]  # col indices
-        object_rays_info = self.eval_dataset.metadata["obj_info"][c, y, x]
+        object_rays_info = self.eval_dataset.metadata["obj_info"][c]
+
+        # image_width = self.eval_dataset.cameras[c].width
+        # image_height = self.eval_dataset.cameras[c].height
+        # print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
+
+        # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_width[0], dim=2)
+        # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_height[0], dim=2)
+
         object_rays_info = object_rays_info.reshape(object_rays_info.shape[0], -1)
         ray_bundle.metadata["object_rays_info"] = object_rays_info.detach()
         return ray_bundle, batch
@@ -84,8 +100,20 @@ class MarsDataManager(VanillaDataManager):  # pylint: disable=abstract-method
             assert camera_ray_bundle.camera_indices is not None
             image_idx = int(camera_ray_bundle.camera_indices[0, 0, 0])
             object_rays_info = self.eval_dataset.metadata["obj_info"][image_idx]
+
+            # image_width = self.eval_dataset.cameras[image_idx].width
+            # image_height = self.eval_dataset.cameras[image_idx].height
+            # print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
+
+            # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_width[0], dim=2)
+            # object_rays_info = object_rays_info[:, None, ...].repeat_interleave(image_height[0], dim=2)
+
+            # camera_ray_bundle.metadata["object_rays_info"] = object_rays_info.reshape(
+            #     camera_ray_bundle.shape[0], camera_ray_bundle.shape[1], -1
+            # ).detach()
+
             camera_ray_bundle.metadata["object_rays_info"] = object_rays_info.reshape(
-                camera_ray_bundle.shape[0], camera_ray_bundle.shape[1], -1
+                camera_ray_bundle.shape[0], -1
             ).detach()
             return image_idx, camera_ray_bundle, batch
         raise ValueError("No more eval images")

@@ -1182,8 +1182,12 @@ class MarsPandasetParser(DataParser):
         obj_nodes_tensor = torch.from_numpy(obj_nodes)
         # if self.config.fast_loading:
         #     obj_nodes_tensor = obj_nodes_tensor.cuda()
-        obj_nodes_tensor = obj_nodes_tensor[:, :, None, ...].repeat_interleave(image_width[0], dim=2)
-        obj_nodes_tensor = obj_nodes_tensor[:, :, None, ...].repeat_interleave(image_height[0], dim=2)
+        
+        # TODO: RAM Issue here
+
+        print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
+        # obj_nodes_tensor = obj_nodes_tensor[:, :, None, ...].repeat_interleave(image_width[0], dim=2)
+        # obj_nodes_tensor = obj_nodes_tensor[:, :, None, ...].repeat_interleave(image_height[0], dim=2)
 
         obj_size = self.max_input_objects * add_input_rows
         input_size += obj_size
@@ -1192,7 +1196,11 @@ class MarsPandasetParser(DataParser):
 
         # [N, H, W, ro+rd+rgb+obj_nodes*max_obj, 3]
         # with obj_nodes [(x+y+z)*max_obj + (obj_id+is_training+0)*max_obj]
-        obj_nodes_tensor = obj_nodes_tensor.permute([0, 2, 3, 1, 4]).cpu()
+
+        # TODO: RAM Issue here
+        # obj_nodes_tensor = obj_nodes_tensor.permute([0, 2, 3, 1, 4]).cpu()
+
+
         # obj_nodes = np.stack([obj_nodes[i] for i in i_train], axis=0)  # train images only
         obj_info = torch.cat([obj_nodes_tensor[i : i + 1] for i in indices], dim=0)
 
