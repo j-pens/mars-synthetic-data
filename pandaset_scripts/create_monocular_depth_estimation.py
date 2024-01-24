@@ -22,19 +22,19 @@ dataset = ps.DataSet(pandaset_root)
 sequence_names = dataset.sequences()
 print(sequence_names, len(sequence_names))
 
-for sequence_name in tqdm(sequence_names, desc="Processing sequences"):
+for sequence_name in tqdm(sequence_names, desc="Processing sequences", position=0):
     sequence: Sequence = dataset[sequence_name].load_camera()
 
     sequence_dir = os.path.join(pandaset_root, sequence_name)
     cameras = sequence.camera
 
-    for camera_name in tqdm(cameras.keys(), desc="Processing cameras"):
+    for camera_name in tqdm(cameras.keys(), desc="Processing cameras", position=1, leave=False):
         camera = cameras[camera_name]
         camera_path = os.path.join(sequence_dir, 'camera', camera_name)
         depth_camera_dir = os.path.join(sequence_dir, 'monocular_depth', camera_name)
         os.makedirs(depth_camera_dir, exist_ok=True)
 
-        for frame_index, frame in tqdm(enumerate(camera), desc='Processing frames', total=80):
+        for frame_index, frame in tqdm(enumerate(camera), desc='Processing frames', total=80, position=2, leave=False):
             depth_filename = str(frame_index).zfill(2) + '.png'
             prediction = depth_estimator(frame)
             prediction['depth'].save(os.path.join(depth_camera_dir, depth_filename))
