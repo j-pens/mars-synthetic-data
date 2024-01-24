@@ -20,33 +20,102 @@ from pathlib import Path
 # TODO: Load background model
 
 
+class MarsPipelineCheckpoint:
+    """Mars pipeline checkpoint."""
+
+    def __init__(self, checkpoint_dir):
+        """Initialize."""
+
+        self.checkpoint_dir = checkpoint_dir
+        """Directory of run with checkpoint."""
+
+        self.config_path = Path(os.path.join(os.path.dirname(self.checkpoint_dir), '..', "config.yml"))
+        """Config path."""
+
+        self._loaded_state = None
+        self._state = None
+        self._config: TrainerConfig = None
+
+    @property
+    def loaded_state(self):
+        """Loaded state."""
+        if self._loaded_state is None:
+            self.load_state()
+        return self._loaded_state
+
+    @property
+    def state(self):
+        """State without module prefixes."""
+        if self._state is None:
+            self._state = {
+                (key[len("module.") :] if key.startswith("module.") else key): value for key, value in self.loaded_state.items()
+            }
+        return self._state
+
+    @property
+    def config(self):
+        """Config."""
+        if self._config is None:
+            self.load_config()
+        return self._config
+
+    def load_state(self):
+        """Load state from torch checkpoint."""
+        self._loaded_state = torch.load(self.checkpoint_dir, map_location="cpu")
+
+
+    def load_config(self):
+        """Load config from yaml file."""
+        # Unsafe load, but we have to trust the config file here
+        self._config: TrainerConfig = yaml.load(self.config_path.read_text(), Loader=yaml.Loader)
+
+    def get_background_model_config(self):
+        """Get background model config."""
+        return self.config.pipeline.model.background_model
+    
+    def get_object_model_template_config(self):
+        """Get object model template config."""
+        return self.config.pipeline.model.object_model_template
+    
+    def get_object_model_ids(self):
+        """Get object model ids."""
+        object_model_ids = set([k.split('.')[2] for k in self.state['pipeline'] if 'object_model' in k])
+        return object_model_ids
+    
+    def get_object_model_keys(self, object_model_id):
+        """Get keys for object model."""
+        return [k for k in self.state['pipeline'] if object_model_id in k]
+
+    def get_background_model_keys(self):
+        return [k for k in self.state['pipeline'] if 'background_model' in k]
+
 
 @dataclass
 class ModelLibrary:
     """Model library."""
     
-    checkpoint_path: str
-    """Path to checkpoint."""
+    checkpoint_dir: str
+    """Directory of run with checkpoint."""
 
 
 
     models = []
     """List of models in library?"""
 
-    def load_from_pipeline(self, checkpoint_path):
+    def load_from_pipeline(self, checkpoint_dir):
         """Load models from pipeline checkpoint."""
-        loaded_state = torch.load(checkpoint_path, map_location="cpu")
 
-        print(loaded_state.keys())
 
-        config_path = Path(os.path.join(os.path.dirname(checkpoint_path), '..', "config.yml"))
-        # Unsafe load, but we have to trust the config file here
-        config: TrainerConfig = yaml.load(config_path.read_text(), Loader=yaml.Loader)
+        mars_checkpoint = MarsPipelineCheckpoint(checkpoint_dir)
 
-        print(config)
+        # config_path = Path(os.path.join(os.path.dirname(checkpoint_dir), '..', "config.yml"))
+        # # Unsafe load, but we have to trust the config file here
+        # config: TrainerConfig = yaml.load(config_path.read_text(), Loader=yaml.Loader)
 
-        background_model_config = config.pipeline.model.background_model
-        object_model_config = config.pipeline.model.object_model_template
+        print(mars_checkpoint.config)
+
+        background_model_config = mars_checkpoint.config.pipeline.model.background_model
+        object_model_config = mars_checkpoint.config.pipeline.model.object_model_template
 
         # TODO: Get pipeline datamanager config
         # TODO: Get checkpoint directory
@@ -56,40 +125,23 @@ class ModelLibrary:
         # TODO: Create scene graph model
         # TODO: Get metadata from dataparser based on sequence id
 
-        state = {
-            (key[len("module.") :] if key.startswith("module.") else key): value for key, value in loaded_state.items()
-        }
+        state = mars_checkpoint.state
 
         pipeline_keys = state['pipeline'].keys()
         background_model_keys = [k for k in state['pipeline'].keys() if 'background_model' in k]
         object_model_keys = [k for k in state['pipeline'].keys() if 'object_model' in k]
         other_pipeline_keys = [k for k in state['pipeline'].keys() if 'object_model' not in k and 'background_model' not in k]
-        # print(other_pipeline_keys)
 
         device_indicator_keys = [k for k in state['pipeline'].keys() if 'device_indicator_param' in k and 'object_model' not in k and 'background_model' not in k]
-        # print(device_indicator_keys)
         pipeline_lpips_keys = [k for k in state['pipeline'].keys() if 'lpips' in k and 'object_model' not in k and 'background_model' not in k]
 
+        object_model_ids = mars_checkpoint.get_object_model_ids()
 
-        n_other_pipeline_keys = len(other_pipeline_keys)
-        n_lpips_pipeline_keys = len(pipeline_lpips_keys)
-        n_device_indicator_keys = len(device_indicator_keys)
-        n_obj_model_keys = len(object_model_keys)
-        n_background_model_keys = len(background_model_keys)
-        n_pipeline_keys = len(pipeline_keys)
-
-        # print(f"Number of pipeline keys: {n_pipeline_keys} = {n_obj_model_keys} object model keys + {n_background_model_keys} background model keys + {n_lpips_pipeline_keys} lpips pipeline keys + {n_device_indicator_keys} pipeline device indicator keys?")
-
-        object_model_ids = self.get_object_model_ids(pipeline_keys)
-
-        non_model_keys = [k for k in state['pipeline'].keys() if not k.startswith('_model.')]
-
-        background_model_keys = self.get_background_model_keys(pipeline_keys)
-        single_object_model_keys = self.get_object_model_keys(pipeline_keys, next(iter(object_model_ids)))
+        background_model_keys = mars_checkpoint.get_background_model_keys()
+        single_object_model_keys = mars_checkpoint.get_object_model_keys(next(iter(object_model_ids)))
         print(single_object_model_keys)
 
         single_object_model_state = {'.'.join(k.split('.')[3:]): v for k, v in state['pipeline'].items() if k in single_object_model_keys}
-        # print(single_object_model_state.keys())
 
         # object scene box might vary
         aabb_scale = 1.0
@@ -119,23 +171,9 @@ class ModelLibrary:
         background_model = background_model_config.setup(scene_box=bg_scene_box, num_train_data=num_train_data)
         background_model.load_state_dict(background_model_state)
 
-        
-
-    def get_object_model_ids(self, pipeline_keys):
-        """Get object model ids."""
-        object_model_ids = set([k.split('.')[2] for k in pipeline_keys if 'object_model' in k])
-        return object_model_ids
-    
-    def get_object_model_keys(self, pipeline_keys, object_model_id):
-        """Get keys for object model."""
-        return [k for k in pipeline_keys if object_model_id in k]
-
-    def get_background_model_keys(self, pipeline_keys):
-        return [k for k in pipeline_keys if 'background_model' in k]
-
     def main(self):
         """Main function."""
-        self.load_from_pipeline(self.checkpoint_path)
+        self.load_from_pipeline(self.checkpoint_dir)
 
 
 def entrypoint():
