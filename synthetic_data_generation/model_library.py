@@ -6,6 +6,12 @@ from nerfstudio.models.nerfacto import NerfactoModel, NerfactoModelConfig
 from nerfstudio.data.scene_box import SceneBox
 from nerfstudio.engine.trainer import TrainerConfig
 from nerfstudio.data.datamanagers.base_datamanager import VanillaDataManagerConfig
+from nerfstudio.data.dataparsers.base_dataparser import DataparserOutputs
+
+from mars.data.mars_pandaset_dataparser import MarsPandasetDataParserConfig, MarsPandasetParser
+from mars.models.scene_graph import SceneGraphModelConfig, SceneGraphModel
+
+from synthetic_data_render import _render_trajectory_video
 
 from dataclasses import dataclass, field
 import os
@@ -101,6 +107,11 @@ class MarsPipelineCheckpoint:
         background_model_state = {'.'.join(k.split('.')[2:]): v for k, v in self.state['pipeline'].items() if k in background_model_keys}
         return background_model_state
 
+    def get_dataparser_config(self):
+        """Returns dataparser config with corrected data path."""
+        dataparser_config = self.config.pipeline.datamanager.dataparser
+        dataparser_config.data = Path(self.config.data)
+        return dataparser_config
 
 @dataclass
 class ModelLibrary:
@@ -120,20 +131,12 @@ class ModelLibrary:
 
         mars_checkpoint = MarsPipelineCheckpoint(checkpoint_dir)
 
-        # config_path = Path(os.path.join(os.path.dirname(checkpoint_dir), '..', "config.yml"))
-        # # Unsafe load, but we have to trust the config file here
-        # config: TrainerConfig = yaml.load(config_path.read_text(), Loader=yaml.Loader)
-
-        print(mars_checkpoint.config)
-
         background_model_config = mars_checkpoint.config.pipeline.model.background_model
         object_model_config = mars_checkpoint.config.pipeline.model.object_model_template
 
         # TODO: Get pipeline datamanager config
         # TODO: Get checkpoint directory
         # TODO: Set datamanager to some datamanager that is registered in nerfstudio
-        # TODO: Set pipeline to eval mode
-        # TODO: Create pipeline
         # TODO: Create scene graph model
         # TODO: Get metadata from dataparser based on sequence id
 
@@ -147,35 +150,38 @@ class ModelLibrary:
         device_indicator_keys = [k for k in state['pipeline'].keys() if 'device_indicator_param' in k and 'object_model' not in k and 'background_model' not in k]
         pipeline_lpips_keys = [k for k in state['pipeline'].keys() if 'lpips' in k and 'object_model' not in k and 'background_model' not in k]
 
-        object_model_ids = mars_checkpoint.get_object_model_ids()
+        dataparser_config: MarsPandasetDataParserConfig = mars_checkpoint.get_dataparser_config()
+        dataparser: MarsPandasetParser = dataparser_config.setup()
 
-        background_model_keys = mars_checkpoint.get_background_model_keys()
-        single_object_model_keys = mars_checkpoint.get_object_model_keys(next(iter(object_model_ids)))
-        print(single_object_model_keys)
+        dataparser_outputs: DataparserOutputs = dataparser.get_dataparser_outputs(split="train")
 
-        single_object_model_state = mars_checkpoint.get_object_model_state(next(iter(object_model_ids)))
+        # print(dataparser_outputs.metadata.keys())
+        print(dataparser_outputs.metadata['obj_info'].view(
+            dataparser_outputs.metadata['obj_info'].shape[0], 
+            dataparser_outputs.metadata['obj_info'].shape[1],
+            mars_checkpoint.config.pipeline.model.max_num_obj,
+            dataparser.config.add_input_rows * 3
+        )[:, :, 0, :])
+        # print(dataparser_outputs.metadata['obj_metadata'])
+        # print(dataparser_outputs.metadata['scene_obj'])
+        obj_model_key = [k for k in dataparser_outputs.metadata['scene_obj']]
+        # print(obj_model_key)
+        # print((type(obj_model_key[0]), obj_model_key[0]))
+        # print(max(dataparser_outputs.metadata['scene_obj']))
 
-        # TODO: Get object scene box scale from dataparser
-        # object scene box might vary
-        aabb_scale = 1.0
-        scene_box = SceneBox(
-            aabb=torch.tensor(
-                [[-aabb_scale, -aabb_scale, -aabb_scale], [aabb_scale, aabb_scale, aabb_scale]], dtype=torch.float32
-            )
-        )
+        scene_box: SceneBox = dataparser_outputs.scene_box
 
         num_train_data = mars_checkpoint.config.pipeline.datamanager.dataparser.last_frame - mars_checkpoint.config.pipeline.datamanager.dataparser.first_frame
         assert num_train_data == 40
 
-        # TODO: Use config from pipeline
-        object_model_config = NerfactoModelConfig(far_plane=150.0, background_color='black')
+        # object_model_config = mars_checkpoint.get_object_model_template_config()
 
-        obj_model = object_model_config.setup(scene_box=scene_box, num_train_data=num_train_data)
-        obj_model.load_state_dict(single_object_model_state)
+        # obj_model = object_model_config.setup(scene_box=scene_box, num_train_data=num_train_data, object_meta=dataparser_outputs.metadata, obj_feat_dim=0)
+        # obj_model.load_state_dict(single_object_model_state)
 
 
-        # TODO: Get background scene box scale from dataparser
         # bg scale usually 1.0
+        # Hard-coded in scene_graph.py
         bg_scale = 1.0
         bg_scene_box = SceneBox(
             aabb=torch.tensor(
@@ -185,10 +191,36 @@ class ModelLibrary:
 
         background_model_state = mars_checkpoint.get_background_model_state()
 
-        # TODO: Use config from pipeline
-        background_model_config = NerfactoModelConfig(far_plane=150.0, background_color='black')
-        background_model = background_model_config.setup(scene_box=bg_scene_box, num_train_data=num_train_data)
+        background_model_config = mars_checkpoint.get_background_model_config()
+        background_model = background_model_config.setup(scene_box=bg_scene_box, num_train_data=num_train_data, object_meta=dataparser_outputs.metadata, obj_feat_dim=0)
         background_model.load_state_dict(background_model_state)
+
+        scene_graph_config: SceneGraphModelConfig = mars_checkpoint.config.pipeline.model
+        scene_graph_model: SceneGraphModel = scene_graph_config.setup(
+            object_meta=dataparser_outputs.metadata,
+            scene_box=scene_box,
+            num_train_data=num_train_data, 
+            scale_factor=dataparser_outputs.metadata['scale_factor'], 
+            obj_feat_dim=None, 
+            use_car_latents=False, 
+            car_latents=None, 
+            car_nerf_state_dict_path=None,
+            use_depth=False,
+            use_semantic=False
+        )
+
+
+
+
+        scene_graph_model.background_model = background_model
+
+        for k in scene_graph_model.object_models:
+            # print(k)
+            state = mars_checkpoint.get_object_model_state(k)
+            # print(state.keys())
+            scene_graph_model.object_models[k].load_state_dict(state)
+
+
 
     def main(self):
         """Main function."""

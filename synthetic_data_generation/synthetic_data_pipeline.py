@@ -7,13 +7,14 @@ from mars.models.semantic_nerfw import SemanticNerfWModel as SemanticNerfWModelW
 from mars.utils.neural_scene_graph_helper import box_pts, combine_z, world2object
 
 from nerfstudio.models.base_model import Model, ModelConfig
+from nerfstudio.pipelines.base_pipeline import Pipeline, module_wrapper
 from nerfstudio.cameras.rays import Frustums, RayBundle, RaySamples
 from nerfstudio.engine.callbacks import (
     TrainingCallback,
     TrainingCallbackAttributes,
     TrainingCallbackLocation,
 )
-from nerfstudio.data.dataparsers.base_dataparser import Semantics
+from nerfstudio.data.dataparsers.base_dataparser import Semantics, DataParser, DataparserOutputs
 from nerfstudio.data.scene_box import SceneBox
 
 from nerfstudio.field_components.field_heads import FieldHeadNames
@@ -47,6 +48,24 @@ from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 from torchmetrics.image import PeakSignalNoiseRatio
 from torch.nn.functional import binary_cross_entropy
 from torch.nn.parameter import Parameter
+
+@dataclass
+class MinimalSyntheticDataRenderingPipeline:
+
+    _model: Model
+    dataparser_outputs: DataparserOutputs
+    # TODO: Use datamanager here as well
+
+    @property
+    def model(self):
+        """Returns the unwrapped model if in ddp"""
+        return module_wrapper(self._model)
+
+    @property
+    def device(self):
+        """Returns the device that the model is on."""
+        return self.model.device
+
 
 @dataclass
 class SyntheticDataPipelineConfig(MarsPipelineConfig):
