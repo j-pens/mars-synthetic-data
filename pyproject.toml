@@ -32,6 +32,7 @@ mars-vkitti-car-depth-recon-semantic = 'mars.cicai_configs:VKITTI_Recon_Mars_Car
 mars-kitti-car-depth-recon = 'mars.cicai_configs:KITTI_Recon_Mars_Car_Depth'
 mars-pandaset-car-depth-recon = 'mars.synthetic_data_configs:PANDASET_Recon_Mars_Car_Depth'
 mars-pandaset-nerfacto-object-wise-recon = 'mars.synthetic_data_configs:PANDASET_Recon_Mars_Nerfacto_object_wise'
+mars-pandaset-nerfacto-class-wise-recon = 'mars.synthetic_data_configs:PANDASET_Recon_Mars_Nerfacto_class_wise'
 mars-kitti-car-depth-nvs = 'mars.cicai_configs:KITTI_NVS_Mars_Car_Depth'
 mars-vkitti-car-depth-recon = 'mars.cicai_configs:VKITTI_Recon_Mars_Car_Depth'
 mars-vkitti-car-depth-nvs = 'mars.cicai_configs:VKITTI_NVS_Mars_Car_Depth'
