@@ -214,11 +214,22 @@ class MarsPipeline(Pipeline):
             for camera_ray_bundle, batch in self.datamanager.fixed_indices_eval_dataloader:
                 # time this the following line
                 inner_start = time()
-                camera_ray_bundle.metadata["object_rays_info"] = (
-                    self.datamanager.eval_dataset.metadata["obj_info"][batch["image_idx"]]
-                    .reshape(camera_ray_bundle.shape[0], camera_ray_bundle.shape[1], -1)
-                    .detach()
-                )
+
+                image_idx = batch["image_idx"]
+
+                object_rays_info = self.datamanager.eval_dataset.metadata["obj_info"][image_idx]
+
+                image_width = self.datamanager.eval_dataset.cameras[image_idx].width
+                image_height = self.datamanager.eval_dataset.cameras[image_idx].height
+                # print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
+
+                object_rays_info = object_rays_info[None, ...].repeat_interleave(image_width[0], dim=0)
+                object_rays_info = object_rays_info[None, ...].repeat_interleave(image_height[0], dim=0)
+
+                camera_ray_bundle.metadata["object_rays_info"] = object_rays_info.reshape(
+                    camera_ray_bundle.shape[0], camera_ray_bundle.shape[1], -1
+                ).detach()
+                
                 height, width = camera_ray_bundle.shape
                 num_rays = height * width
                 outputs = self.model.get_outputs_for_camera_ray_bundle(camera_ray_bundle)
