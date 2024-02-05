@@ -50,6 +50,9 @@ from nerfstudio.utils.eval_utils import eval_setup
 from nerfstudio.utils.rich_utils import ItersPerSecColumn
 from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_length
 
+from nerfstudio.utils.tensor_dataclass import TensorDataclass
+
+
 CONSOLE = Console(width=120)
 
 
@@ -172,14 +175,24 @@ def _render_trajectory_video(
                 print(f'batch_obj_dyn: {batch_obj_dyn.shape}')
                 print(f'batch_obj_dyn: {batch_obj_dyn[0, 0, ...]}')
 
+                # Is not a tracklet at this point, as it is just for one frame
+                # [x, y, z, yaw, obj_id, 0]
+                tracklets_by_id = get_tracklets_with_object_ids(batch_obj_dyn, object_model_ids)
                 
+                print(f'tracklets_by_id: {tracklets_by_id.keys()}')
+                print(f'tracklets_by_id: {tracklets_by_id[object_model_ids[0].item()].shape}')
+
                 # TODO: Use this to adjust pose and rotation
+
+                # Pose is just x,y,z
                 pose = batch_obj_dyn[..., :3]
+
+                # Rotation is just yaw
                 rotation = batch_obj_dyn[..., 3]
                 pose[:, :, 0, 2] = pose[:, :, 0, 2]
                 rotation[:, :, 0] = rotation[:, :, 0]
                 batch_obj_dyn[..., :3] = pose # + 0.01
-                batch_obj_dyn[..., 3] = rotation
+                batch_obj_dyn[..., 3] = rotation + np.pi
                 camera_ray_bundle.metadata["object_rays_info"] = batch_obj_dyn.reshape(
                     batch_obj_dyn.shape[0] * batch_obj_dyn.shape[1], batch_obj_dyn.shape[2] * batch_obj_dyn.shape[3]
                 )
@@ -245,6 +258,63 @@ def _render_trajectory_video(
     if output_format == "video":
         if camera_type == CameraType.EQUIRECTANGULAR:
             insert_spherical_metadata_into_file(output_filename)
+
+
+def get_tracklets_with_object_ids(batch_objects_dyn, object_ids):
+    """Get tracklets with object ids."""
+    
+    # TODO: Create tracklets as pytorch data classes
+
+    tracklets = {}
+    for i, obj_id in enumerate(object_ids):
+        tracklets[obj_id.item()] = batch_objects_dyn[..., i, :]
+
+    return tracklets
+
+
+
+def get_bounding_box_from_tracklet(tracklet):
+    pass
+
+
+@dataclass(init=False)
+class Tracklet(TensorDataclass):
+    """Tracklet class."""
+
+    def __init__(self, x, y, z, yaw, width, height, length, obj_id):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.yaw = yaw
+        self.width = width
+        self.height = height
+        self.length = length
+        self.obj_id = obj_id
+        
+
+
+@dataclass(init=False)
+class BoundingBox(TensorDataclass):
+    """Bounding box class."""
+
+    def __init__(self, x, y, z, yaw, width, height, length):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.yaw = yaw
+        self.width = width
+        self.height = height
+        self.length = length
+
+    def __str__(self):
+        return f"Bounding box: x: {self.x}, y: {self.y}, z: {self.z}, width: {self.width}, height: {self.height}, depth: {self.depth}"
+
+
+class CustomKittiDataSaver():
+    """Custom Kitti data saver. Saves files according to the custom kitti format supported by the mmdet3d repository."""
+
+    
+
 
 
 def insert_spherical_metadata_into_file(

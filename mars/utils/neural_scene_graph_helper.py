@@ -431,6 +431,7 @@ def rotate_yaw(p, yaw):
     Returns:
         p: Rotated points [N_pts, N_frames, N_samples, 3]
     """
+    # print('This is new rotate_yaw()')
     # p of size [batch_rays, n_obj, samples, xyz]
     if len(p.shape) < 4:
         # p = p[..., tf.newaxis, :]
