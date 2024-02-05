@@ -147,6 +147,8 @@ def _render_trajectory_video(
                 #     3,
                 # )
 
+
+
                 batch_obj_dyn = camera_ray_bundle.metadata["object_rays_info"].view(
                     camera_ray_bundle.metadata["object_rays_info"].shape[0],
                     camera_ray_bundle.metadata["object_rays_info"].shape[1],
@@ -158,12 +160,25 @@ def _render_trajectory_video(
                     norm_sh[0] * norm_sh[1], norm_sh[2]
                 )
 
+                obj_idx = batch_obj_dyn[..., 4]
+                print(f'obj_idx: {obj_idx}')
+
+                # TODO: Check metadata for track ids
+                object_model_ids = obj_metadata[1:, 0]
+                
+                print(f'metadata shape: {obj_metadata.shape}')
+                print(f'metadata: {object_model_ids}')
+
+                print(f'batch_obj_dyn: {batch_obj_dyn.shape}')
+                print(f'batch_obj_dyn: {batch_obj_dyn[0, 0, ...]}')
+
+                
                 # TODO: Use this to adjust pose and rotation
                 pose = batch_obj_dyn[..., :3]
                 rotation = batch_obj_dyn[..., 3]
                 pose[:, :, 0, 2] = pose[:, :, 0, 2]
                 rotation[:, :, 0] = rotation[:, :, 0]
-                batch_obj_dyn[..., :3] = pose
+                batch_obj_dyn[..., :3] = pose # + 0.01
                 batch_obj_dyn[..., 3] = rotation
                 camera_ray_bundle.metadata["object_rays_info"] = batch_obj_dyn.reshape(
                     batch_obj_dyn.shape[0] * batch_obj_dyn.shape[1], batch_obj_dyn.shape[2] * batch_obj_dyn.shape[3]
@@ -366,9 +381,12 @@ class RenderTrajectory:
         FOV = torch.tensor(([30, 26, 22]), dtype=torch.float32)
         # camera_path = pipeline.datamanager.eval_dataset.cameras
         camera_path = pipeline.datamanager.train_dataset.cameras
-        render_width = int(camera_path.cx[0] * 2)
-        render_height = int(camera_path.cy[0] * 2)
-        seconds = 13
+
+        render_width = camera_path.image_width[0]
+        render_height = camera_path.image_height[0]
+
+        seconds = 5
+
         camera_type = CameraType.PERSPECTIVE
         # for i, fov in enumerate(FOV):
         #     focal_length = three_js_perspective_camera_focal_length(fov, render_height)
