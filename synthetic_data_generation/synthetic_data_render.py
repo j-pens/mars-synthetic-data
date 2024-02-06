@@ -163,24 +163,16 @@ def _render_trajectory_video(
                     norm_sh[0] * norm_sh[1], norm_sh[2]
                 )
 
-                obj_idx = batch_obj_dyn[..., 4]
-                print(f'obj_idx: {obj_idx}')
 
-                # TODO: Check metadata for track ids
-                object_model_ids = obj_metadata[1:, 0]
-                
-                print(f'metadata shape: {obj_metadata.shape}')
-                print(f'metadata: {object_model_ids}')
-
-                print(f'batch_obj_dyn: {batch_obj_dyn.shape}')
-                print(f'batch_obj_dyn: {batch_obj_dyn[0, 0, ...]}')
+                # print(f'batch_obj_dyn: {batch_obj_dyn.shape}')
+                # print(f'batch_obj_dyn: {batch_obj_dyn[0, 0, ...]}')
 
                 # Is not a tracklet at this point, as it is just for one frame
                 # [x, y, z, yaw, obj_id, 0]
-                tracklets_by_id = get_tracklets_with_object_ids(batch_obj_dyn, object_model_ids)
+                tracklets_by_id = get_bounding_boxes_with_object_ids(batch_objects_dyn=batch_obj_dyn, obj_metadata=obj_metadata)
                 
                 print(f'tracklets_by_id: {tracklets_by_id.keys()}')
-                print(f'tracklets_by_id: {tracklets_by_id[object_model_ids[0].item()].shape}')
+                print(f'tracklets_by_id: {tracklets_by_id[list(tracklets_by_id.keys())[0]].shape}')
 
                 # TODO: Use this to adjust pose and rotation
 
@@ -192,7 +184,7 @@ def _render_trajectory_video(
                 pose[:, :, 0, 2] = pose[:, :, 0, 2]
                 rotation[:, :, 0] = rotation[:, :, 0]
                 batch_obj_dyn[..., :3] = pose # + 0.01
-                batch_obj_dyn[..., 3] = rotation + np.pi
+                batch_obj_dyn[..., 3] = rotation + np.pi/8
                 camera_ray_bundle.metadata["object_rays_info"] = batch_obj_dyn.reshape(
                     batch_obj_dyn.shape[0] * batch_obj_dyn.shape[1], batch_obj_dyn.shape[2] * batch_obj_dyn.shape[3]
                 )
@@ -260,14 +252,34 @@ def _render_trajectory_video(
             insert_spherical_metadata_into_file(output_filename)
 
 
-def get_tracklets_with_object_ids(batch_objects_dyn, object_ids):
+def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata):
     """Get tracklets with object ids."""
     
-    # TODO: Create tracklets as pytorch data classes
+    object_ids = obj_metadata[1:, 0]
 
+
+    obj_idx = batch_objects_dyn[..., 4]
+    print(f'obj_idx: {obj_idx}')
+
+    object_model_ids = obj_metadata[1:, 0]
+    
+    print(f'metadata shape: {obj_metadata.shape}')
+    print(f'metadata: {object_model_ids}')
+
+    dimensions = obj_metadata[1:, 1:4]
+    print(f'dimensions shape: {dimensions.shape}')
+    print(f'dimensions: {dimensions}')
+
+    class_ids = obj_metadata[1:, 4]
+    print(f'class_ids shape: {class_ids.shape}')
+    print(f'class_ids: {class_ids}')
+
+
+    # TODO: Replace with bounding box classes
     tracklets = {}
     for i, obj_id in enumerate(object_ids):
         tracklets[obj_id.item()] = batch_objects_dyn[..., i, :]
+
 
     return tracklets
 
@@ -297,7 +309,7 @@ class Tracklet(TensorDataclass):
 class BoundingBox(TensorDataclass):
     """Bounding box class."""
 
-    def __init__(self, x, y, z, yaw, width, height, length):
+    def __init__(self, x, y, z, yaw, width, height, length, class_id, obj_id):
         self.x = x
         self.y = y
         self.z = z
@@ -305,6 +317,8 @@ class BoundingBox(TensorDataclass):
         self.width = width
         self.height = height
         self.length = length
+        self.class_id = class_id
+        self.obj_id = obj_id
 
     def __str__(self):
         return f"Bounding box: x: {self.x}, y: {self.y}, z: {self.z}, width: {self.width}, height: {self.height}, depth: {self.depth}"

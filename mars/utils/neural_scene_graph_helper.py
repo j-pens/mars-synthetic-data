@@ -447,11 +447,18 @@ def rotate_yaw(p, yaw):
     # c_y = tf.cos(yaw)[..., tf.newaxis]
     # s_y = tf.sin(yaw)[..., tf.newaxis]
 
+    # x-axis
+    # p_x = p[..., 0]
+    # p_y = c_y * p[..., 1] + s_y * p[..., 2]
+    # p_z = -s_y * p[..., 1] + c_y * p[..., 2]
+
     # modif Pierre
+    # y-axis
     # p_x = c_y * p[..., 0] - s_y * p[..., 2]
     # p_y = p[..., 1]
     # p_z = s_y * p[..., 0] + c_y * p[..., 2]
     
+    # z-axis
     p_x = c_y * p[..., 0] - s_y * p[..., 1]
     p_y = s_y * p[..., 0] + c_y * p[..., 1]
     p_z = p[..., 2]
