@@ -50,7 +50,7 @@ class CarNeRFModelConfig(ModelConfig):
     num_coarse_samples: int = 32
     num_fine_samples: int = 97
     background_color: str = "black"
-    optimize_latents: bool = False
+    optimize_latents: bool = True
 
 
 class CarNeRF(Model):
