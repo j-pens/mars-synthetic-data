@@ -167,6 +167,7 @@ outputs/
 exports/
 renders/
 synthetic_data_renders/
+pandaset_latents/
 # tensorboard log files
 events.out.*
 
