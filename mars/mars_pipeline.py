@@ -223,10 +223,12 @@ class MarsPipeline(Pipeline):
                 image_height = self.datamanager.eval_dataset.cameras[image_idx].height
                 # print(f'Image size (HxW): {image_height[0]}x{image_width[0]}')
 
-                object_rays_info = object_rays_info[None, ...].repeat_interleave(image_width[0], dim=0)
-                object_rays_info = object_rays_info[None, ...].repeat_interleave(image_height[0], dim=0)
+                # object_rays_info = object_rays_info[None, ...].repeat_interleave(image_width[0], dim=0)
+                # object_rays_info = object_rays_info[None, ...].repeat_interleave(image_height[0], dim=0)
 
-                camera_ray_bundle.metadata["object_rays_info"] = object_rays_info.reshape(
+                object_rays_info_view = object_rays_info.expand(image_height[0], image_width[0], -1, -1)
+
+                camera_ray_bundle.metadata["object_rays_info"] = object_rays_info_view.reshape(
                     camera_ray_bundle.shape[0], camera_ray_bundle.shape[1], -1
                 ).detach()
                 

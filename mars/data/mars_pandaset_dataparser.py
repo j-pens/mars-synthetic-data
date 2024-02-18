@@ -1194,6 +1194,8 @@ class MarsPandasetParser(DataParser):
         # TODO: Check if this is really necessary, should actually not influence the final results
         obj_nodes_tensor = obj_nodes_tensor.unsqueeze(1).unsqueeze(1)
 
+        # obj_nodes_tensor_exp_view = obj_nodes_tensor.expand(-1, image_height[0], image_width[0], -1, -1)
+
         # print('Shape from dataparser after interleave:', obj_nodes_tensor.shape)
 
         obj_size = self.max_input_objects * add_input_rows
@@ -1209,7 +1211,9 @@ class MarsPandasetParser(DataParser):
 
 
         # obj_nodes = np.stack([obj_nodes[i] for i in i_train], axis=0)  # train images only
-        obj_info = torch.cat([obj_nodes_tensor[i : i + 1] for i in indices], dim=0)
+        # obj_info = torch.cat([obj_nodes_tensor[i : i + 1] for i in indices], dim=0)
+
+        obj_info = obj_nodes_tensor[indices, ...]
 
         # print('Shape from dataparser after cat:', obj_info.shape, len(indices))
         # """
