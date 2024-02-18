@@ -1,5 +1,6 @@
 import torch
 from dataclasses import dataclass
+from torch_cubic_spline_grids import CubicCatmullRomGrid1d
 @dataclass(init=False)
 class BoundingBoxTracklet():
     """Bounding box class."""
@@ -137,3 +138,174 @@ def get_min_camera_distance(tracklet: BoundingBoxTracklet, cam2worlds: torch.Ten
 
     return min_distance
 
+
+
+def sample_with_jitter(n, lower=0, upper=1.0, jitter=0.25):
+    '''Sample n points from n equidistant bins between lower and upper with jitter in percent of the bin width.'''
+    bin_width = (upper - lower) / n
+    bin_centers = torch.linspace(lower, upper, n)
+
+    # Add jitter to bin centers
+    jitters = (torch.rand(n) - 0.5) * bin_width * jitter
+    samples = bin_centers + jitters
+
+    # Ensure samples are within bounds
+    samples = torch.clamp(samples, lower, upper)
+
+    return samples
+
+
+
+def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10):
+    grid_3d = spline_grid_class(resolution=min(resolution, tracklet.x.shape[0]), n_channels=3)
+    optimiser = torch.optim.Adam(grid_3d.parameters(), lr=0.05)
+
+    for i in range(optimization_steps):
+
+        x, y = make_observations_on_tracklet(tracklet=tracklet, n=100, add_noise=add_noise, noise_level=noise_level)
+
+        # print(y.shape)
+
+        y = y.squeeze(-1)
+
+        # print(x.shape)
+
+        prediction = grid_3d(x).squeeze()
+
+        # print(prediction.shape)
+
+        optimiser.zero_grad()
+        loss = torch.sum((prediction - y)**2)**0.5
+
+        # print(loss)
+
+        loss.backward()
+        optimiser.step()
+        if print_loss and i % 100 == 0:
+            print(loss.item())
+
+    if with_optimizer:
+        return grid_3d, optimiser
+    else:
+        return grid_3d
+
+
+def calculate_yaw(positions: torch.Tensor):
+    '''Calculate yaw from positions'''
+
+    # Calculate facing vectors
+    facing_vectors = torch.diff(positions[:, :2], dim=0)
+
+    # Repeat last facing vector for last point
+    facing_vectors = torch.cat((facing_vectors, facing_vectors[-1, :].unsqueeze(0)), dim=0)
+
+    # Normalize facing vectors
+    facing_vectors = facing_vectors / torch.norm(facing_vectors, dim=1).unsqueeze(-1)
+
+    print(facing_vectors)
+
+    # Calculate yaw
+    yaws = torch.atan2(facing_vectors[:, 1], facing_vectors[:, 0])
+
+    return yaws
+
+
+
+def remove_physically_implausible_points(tracklet: BoundingBoxTracklet):
+
+    MAX_ACCELERATION = 5 # m/s^2, being very generous here, F1 car on average 14.2 m/s^2
+    MAX_VELOCITY = 50 # m/s, roughly 180
+
+    velocities, accelerations = get_dynamics(tracklet=tracklet)
+
+    print(velocities.shape, accelerations.shape)
+
+    implausible_velocities_mask = velocities > MAX_VELOCITY
+    implausible_accelerations_mask = accelerations > MAX_ACCELERATION
+
+    print(implausible_velocities_mask.shape)
+    print(implausible_accelerations_mask.shape)
+
+    # implausible_velocities_mask = torch.cat((torch.zeros((1), dtype=torch.bool), implausible_velocities_mask))
+    # implausible_accelerations_mask = torch.cat((torch.zeros((2), dtype=torch.bool), implausible_accelerations_mask))
+
+    print(implausible_velocities_mask.shape)
+    print(implausible_accelerations_mask.shape)
+
+    print(implausible_velocities_mask.dtype)
+
+    implausible_points_mask = implausible_velocities_mask | implausible_accelerations_mask
+
+    implausible_indices = torch.nonzero(implausible_points_mask)
+
+    print(implausible_indices)
+
+    tracklet.x = tracklet.x[~implausible_points_mask]
+    tracklet.y = tracklet.y[~implausible_points_mask]
+    tracklet.z = tracklet.z[~implausible_points_mask]
+    tracklet.yaw = tracklet.yaw[~implausible_points_mask]
+    tracklet.original_indices = tracklet.original_indices[~implausible_points_mask]
+
+
+    # TODO: Extend to remove physically implausible points, e.g. large velocity or acceleration
+
+# TODO: Extend to use higher order diffs to remove less points 
+# -> 1st order diff high for neighbor of outlier as well
+def get_dynamics(tracklet: BoundingBoxTracklet) -> tuple[torch.Tensor, torch.Tensor]:
+
+    points = torch.stack((tracklet.x, tracklet.y, tracklet.z), dim=1)
+
+    # print(points.shape)
+
+    velocity_vectors_raw = torch.diff(points, dim=0, append=points[-2, :].unsqueeze(0))
+
+    index_differences = torch.diff(tracklet.original_indices, append=tracklet.original_indices[-2].unsqueeze(0)).unsqueeze(-1)
+
+    # print(f'Index differences for tracklet {tracklet.obj_model_id}: {index_differences}')
+
+    delta_t = 0.1 # 10 Hz sampling frequency in PandaSet dataset
+
+    velocity_vectors_timed = velocity_vectors_raw / (torch.abs(index_differences) * delta_t)
+
+    # velocity_vectors_length = torch.norm(velocity_vectors_raw, dim=1)
+    velocity_vectors_length_timed = torch.norm(velocity_vectors_timed, dim=1)
+
+    # print('Velocity vectors')
+    # print(velocity_vectors_raw.shape)
+
+    # print('Velocity (length)')
+    # print(velocity_vectors_length.shape)
+    # print(velocity_vectors_length)
+
+    # print('Velocity timed length')
+    # print(velocity_vectors_length_timed.shape)
+    # print(velocity_vectors_length_timed)
+
+    acceleration_vectors = torch.diff(velocity_vectors_timed, dim=0, append=velocity_vectors_timed[-2, :].unsqueeze(0))
+    acceleration_vectors_length = torch.norm(acceleration_vectors, dim=1)
+
+    # print('Acceleration vectors')
+    # print(acceleration_vectors_length.shape)
+    # print(acceleration_vectors_length)
+
+    return velocity_vectors_length_timed, acceleration_vectors_length
+
+
+def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2):
+
+    sample_idx = torch.randint(low=0, high=len(tracklet.x), size=(n, 1))
+
+    x = tracklet.x[sample_idx]
+    y = tracklet.y[sample_idx]
+    z = tracklet.z[sample_idx]
+
+    if add_noise:
+        x += noise_level * torch.randn_like(x)
+        z += noise_level * torch.randn_like(y)
+    
+    # should be the right order, l, w, h -> x,z,y
+    point = torch.stack((x, y, z), dim=1)
+
+    # print(point.shape)
+
+    return sample_idx/(len(tracklet.x)-1), point 
