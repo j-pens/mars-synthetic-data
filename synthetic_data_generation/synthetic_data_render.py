@@ -53,6 +53,9 @@ from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_len
 from nerfstudio.utils.tensor_dataclass import TensorDataclass
 
 
+from object_trajectory_generation import BoundingBoxTracklet, get_bounding_boxes_with_object_ids
+from scene_manipulation import manipulate_scene_trajectories
+
 CONSOLE = Console(width=120)
 
 
@@ -84,7 +87,13 @@ def _render_trajectory_video(
     """
     CONSOLE.print("[bold green]Creating trajectory " + output_format)
     cameras.rescale_output_resolution(rendered_resolution_scaling_factor)
-    cameras = cameras.to(pipeline.device)
+
+    torch.save(cameras.camera_to_worlds, "pandaset_tracklets/seq_011_corrected_axes/cameras_to_worlds.pt")
+
+    initial_cameras = cameras
+
+    cameras = cameras[:5]
+    # cameras = cameras.to(pipeline.device)
     fps = len(cameras) / seconds
 
     obj_location_data = pipeline.datamanager.train_dataset.metadata["obj_info"]
@@ -94,26 +103,21 @@ def _render_trajectory_video(
     obj_location_data_dyn = obj_location_data.view(
         # len(cameras),
         obj_location_data.shape[0], # == len(cameras) for training images
-        # obj_location_data.shape[1],
+         # obj_location_data.shape[1],
         pipeline.model.config.max_num_obj,
         pipeline.model.config.ray_add_input_rows * 3
     )
-
     print(f'obj_location_data_dyn shape: {obj_location_data_dyn.shape}')
+
 
     # Object metadata consistent over all frames/ cameras
     obj_metadata = pipeline.datamanager.train_dataset.metadata["obj_metadata"]
-
-    bounding_box_tracklets = get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
-
     print(f'obj_metadata shape: {obj_metadata.shape}')
 
-    # TODO: Manipulate the object positions, rotations, dimensions and so on using the bounding box tracklet class instances
-    # TODO: Replace obj_metadata with the updated values
-    # TODO: Replace obj_location_data_dyn with the updated values
-    # TODO: Adjust further pipeline steps if necessary
 
-    exit()
+    manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
+
+    cameras = cameras.to(pipeline.device)
 
     progress = Progress(
         TextColumn(":movie_camera: Rendering :movie_camera:"),
@@ -197,10 +201,10 @@ def _render_trajectory_video(
 
                 # Is not a tracklet at this point, as it is just for one frame
                 # [x, y, z, yaw, obj_id, 0]
-                tracklets_by_id = get_bounding_boxes_with_object_ids(batch_objects_dyn=batch_obj_dyn, obj_metadata=obj_metadata)
+                # tracklets_by_id = get_bounding_boxes_with_object_ids(batch_objects_dyn=batch_obj_dyn, obj_metadata=obj_metadata)
                 
-                print(f'tracklets_by_id: {tracklets_by_id.keys()}')
-                print(f'tracklets_by_id: {tracklets_by_id[list(tracklets_by_id.keys())[0]].shape}')
+                # print(f'tracklets_by_id: {tracklets_by_id.keys()}')
+                # print(f'tracklets_by_id: {tracklets_by_id[list(tracklets_by_id.keys())[0]].shape}')
 
                 # TODO: Use this to adjust pose and rotation
 
@@ -212,7 +216,7 @@ def _render_trajectory_video(
                 pose[:, :, 0, 2] = pose[:, :, 0, 2]
                 rotation[:, :, 0] = rotation[:, :, 0]
                 batch_obj_dyn[..., :3] = pose # + 0.01
-                batch_obj_dyn[..., 3] = rotation + np.pi/8
+                batch_obj_dyn[..., 3] = rotation # + np.pi/8
                 camera_ray_bundle.metadata["object_rays_info"] = batch_obj_dyn.reshape(
                     batch_obj_dyn.shape[0] * batch_obj_dyn.shape[1], batch_obj_dyn.shape[2] * batch_obj_dyn.shape[3]
                 )
@@ -280,91 +284,7 @@ def _render_trajectory_video(
             insert_spherical_metadata_into_file(output_filename)
 
 
-def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata):
-    """Get tracklets with object ids."""
-    
-    # first row is constant, and irrelevant, so I remove it
-    obj_metadata = obj_metadata[1:, :]
 
-    # object_ids = obj_metadata[1:, 0]
-
-
-    obj_idx = batch_objects_dyn[..., 4]
-    # print(f'obj_idx: {obj_idx}')
-
-    object_model_ids = obj_metadata[:, 0]
-    
-    # print(f'metadata shape: {obj_metadata.shape}')
-    # print(f'object_model_ids: {object_model_ids}')
-
-    dimensions = obj_metadata[:, 1:4]
-    # print(f'dimensions shape: {dimensions.shape}')
-    # print(f'dimensions: {dimensions}')
-
-    class_ids = obj_metadata[:, 4]
-    # print(f'class_ids shape: {class_ids.shape}')
-    # print(f'class_ids: {class_ids}')
-
-    # obj_idx: tensor([[[1., 2., 3., 4., 5., 6., 7., 8., 9.]]])
-
-    # metadata shape: torch.Size([10, 5])
-    # object_model_ids: tensor([144.,  25., 143., 125., 121.,  43., 188.,  95., 171.])
-
-    # dimensions shape: torch.Size([9, 3])
-    # dimensions: tensor([[0.0498, 0.0189, 0.0232],
-    #         [0.0488, 0.0163, 0.0221],
-    #         [0.0505, 0.0156, 0.0224],
-    #         [0.0498, 0.0170, 0.0216],
-    #         [0.0484, 0.0154, 0.0202],
-    #         [0.0498, 0.0166, 0.0216],
-    #         [0.0508, 0.0158, 0.0204],
-    #         [0.0484, 0.0154, 0.0202],
-    #         [0.0498, 0.0188, 0.0236]])
-
-    # class_ids shape: torch.Size([9])
-    # class_ids: tensor([0., 0., 0., 0., 0., 0., 0., 0., 0.])
-
-    tracklets = {}
-    for i, obj_id in enumerate(object_model_ids):
-        obj_model_id = int(obj_id.item())
-        # print(f'obj_model_id: {obj_model_id}')
-        batch_objects_dyn_row = batch_objects_dyn[..., i, :]
-        # print(f'batch_objects_dyn_row: {batch_objects_dyn_row.shape}')
-
-        pos = batch_objects_dyn_row[..., :3]
-        # print(f'pos: {pos.shape}')
-        
-        xs = pos[..., 0]
-        ys = pos[..., 1]
-        zs = pos[..., 2]
-        # print(f'xs: {xs.shape}')
-        # print(f'ys: {ys.shape}')
-        # print(f'zs: {zs.shape}')
-
-        yaw = batch_objects_dyn_row[..., 3]
-        # print(f'yaw: {yaw.shape}')
-
-        dimensions_obj = dimensions[i]
-        # print(f'dimensions_obj: {dimensions_obj.shape}')
-
-        dxs = dimensions_obj[0]
-        dys = dimensions_obj[1]
-        dzs = dimensions_obj[2]
-        # print(f'dxs: {dxs}')
-        # print(f'dys: {dys}')
-        # print(f'dzs: {dzs}')
-
-        # obj_index references based on the index in the complete object metadata, including the first row
-        obj_index = int(obj_idx[0, i].item())
-        # print(f'obj_index: {obj_index}')
-
-        class_id = int(class_ids[i].item())
-        # print(f'class_id: {class_id}')
-# 
-        tracklets[obj_model_id] = BoundingBoxTracklet(xs, ys, zs, yaw, dxs, dys, dzs, class_id, obj_index, obj_model_id)
-
-
-    return tracklets
 
 
 
@@ -387,37 +307,6 @@ class Tracklet(TensorDataclass):
         self.obj_id = obj_id
         
 
-@dataclass(init=False)
-class BoundingBoxTracklet():
-    """Bounding box class."""
-    x: torch.Tensor
-    y: torch.Tensor
-    z: torch.Tensor
-    yaw: torch.Tensor
-    dx: torch.Tensor
-    dy: torch.Tensor
-    dz: torch.Tensor
-    class_id: int
-    obj_id: int
-    obj_model_id: int
-
-    def __init__(self, x, y, z, yaw, dx, dy, dz, class_id, obj_id, obj_model_id):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.yaw = yaw
-        self.dx = dx
-        self.dy = dy
-        self.dz = dz
-        self.class_id = class_id
-        self.obj_id = obj_id
-        self.obj_model_id = obj_model_id
-
-        # No real dataclass usage for now, let's see if we need it at some point
-        # self.__post_init__()  # This will do the dataclass post_init and broadcast all the tensors
-
-    def __str__(self):
-        return f"Bounding box: object_model_id: {self.obj_model_id}, x: {self.x}, y: {self.y}, z: {self.z}, yaw: {self.yaw} dx: {self.dx}, dy: {self.dy}, dz: {self.dz}, class_id: {self.class_id}, obj_id: {self.obj_id}"
 
 
 class CustomKittiDataSaver():

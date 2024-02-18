@@ -60,7 +60,7 @@ PANDASET_Recon_Mars_Car_Depth = MethodSpecification(
                 background_model=NerfactoModelConfigWithLatentEmbeddingOption(),
                 object_model_template=CarNeRFModelConfig(_target=CarNeRF),
                 object_representation="class-wise",
-                object_ray_sample_strategy="warmup", # "warmup", #"remove-bg", # Pierre test
+                object_ray_sample_strategy="remove-bg", # "warmup", #"remove-bg", # Pierre test
                 mono_depth_loss_mult=0.01,
                 depth_loss_mult=0,
             ),
