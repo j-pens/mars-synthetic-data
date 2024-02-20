@@ -12,6 +12,8 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
     # get camera trajectory
     cam2world = cameras.camera_to_worlds
     times = cameras.times
+
+    n_cams = len(cameras)
     
     # TODO: Create trajectories based on camera times
     # --> How to handle multiple cameras, i.e. front, back, ...?
@@ -39,6 +41,7 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
         # tracklet.save(f'pandaset_tracklets/seq_011_corrected_axes/bounding_box_tracklet_{tracklet.obj_id}.pt')
 
         otg.remove_points_object_not_visible(tracklet=tracklet)
+        otg.remove_physically_implausible_points(tracklet=tracklet)
 
         # tracklet.x += 0.5e-2 # 0.5m
 
@@ -67,6 +70,10 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 
     randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds=cam2world, n_closest_objects=5)
 
+    positions, yaws = insert_synthetic_trajectories(bounding_box_tracklets_list, n_samples=n_cams)
+
+    write_to_obj_location_data(obj_location_data, positions, yaws)
+
     # exit()
 
 
@@ -89,20 +96,27 @@ def randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds, n_
 
 
 
-def insert_synthetic_trajectories(tracklets: list[BoundingBoxTracklet]):
+def insert_synthetic_trajectories(tracklets: list[BoundingBoxTracklet], n_samples=79):
 
     parametrizations = [otg.get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False) for tracklet in tracklets]
 
-    samples = [otg.sample_with_jitter(80, lower=0, upper=1.0, jitter=0.25) for _ in range(len(tracklets))]
+    samples = [otg.sample_with_jitter(n_samples, lower=0, upper=1.0, jitter=0.25) for tracklet in tracklets]
 
     results = [parametrization(sample.unsqueeze(1)).squeeze().detach() for sample, parametrization in zip(samples, parametrizations)]
 
     yaws = [otg.calculate_yaw(result) for result in results]
 
-    for tracklet, trajectory, yaw in zip(tracklets, results, yaws):
-        tracklet.x = trajectory[:, 0]
-        tracklet.y = trajectory[:, 1]
-        tracklet.z = trajectory[:, 2]
-        tracklet.yaw = yaw
+    return results, yaws
 
-        tracklet.original_indices = torch.arange(0, tracklet.x.shape[0])
+
+def write_to_obj_location_data(obj_location_data, positions, yaws):
+    """Write the results to the obj_location_data tensor."""
+
+    for i in range(len(positions)):
+        batch_objects_dyn_row = obj_location_data[..., i, :]
+    
+        # position of the object: x, y, z
+        # pos = batch_objects_dyn_row[..., :3]
+        # yaw = batch_objects_dyn_row[..., 3]
+        batch_objects_dyn_row[..., :3] = positions[i]
+        batch_objects_dyn_row[..., 3] = yaws[i]
