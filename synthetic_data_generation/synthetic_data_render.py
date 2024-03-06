@@ -46,14 +46,13 @@ from nerfstudio.data.utils.data_utils import get_depth_image_from_path
 from nerfstudio.model_components.losses import normalized_depth_scale_and_shift
 from nerfstudio.pipelines.base_pipeline import Pipeline
 from nerfstudio.utils import colormaps, install_checks
-from nerfstudio.utils.eval_utils import eval_setup
+# from nerfstudio.utils.eval_utils import eval_setup
 from nerfstudio.utils.rich_utils import ItersPerSecColumn
 from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_length
 
 from nerfstudio.utils.tensor_dataclass import TensorDataclass
 
-
-from object_trajectory_generation import BoundingBoxTracklet, get_bounding_boxes_with_object_ids
+from custom_eval_utils import eval_setup
 from scene_manipulation import manipulate_scene_trajectories
 
 CONSOLE = Console(width=120)
@@ -88,11 +87,11 @@ def _render_trajectory_video(
     CONSOLE.print("[bold green]Creating trajectory " + output_format)
     cameras.rescale_output_resolution(rendered_resolution_scaling_factor)
 
-    torch.save(cameras.camera_to_worlds, "pandaset_tracklets/seq_011_corrected_axes/cameras_to_worlds.pt")
+    # torch.save(cameras.camera_to_worlds, "pandaset_tracklets/seq_011_corrected_axes/cameras_to_worlds.pt")
 
     initial_cameras = cameras
 
-    cameras = cameras[:5]
+    # cameras = cameras[:5]
     # cameras = cameras.to(pipeline.device)
     fps = len(cameras) / seconds
 
@@ -411,6 +410,7 @@ class RenderTrajectory:
 
     def main(self) -> None:
         """Main function."""
+
         _, pipeline, _, _ = eval_setup(
             self.load_config,
             eval_num_rays_per_chunk=self.eval_num_rays_per_chunk,

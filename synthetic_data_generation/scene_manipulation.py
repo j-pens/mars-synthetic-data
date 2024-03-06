@@ -35,13 +35,17 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 
     bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
 
+    print(bounding_box_tracklet_keys)
+
     bounding_box_tracklets_list = list(bounding_box_tracklets.values())
 
     for tracklet in bounding_box_tracklets_list:
-        # tracklet.save(f'pandaset_tracklets/seq_011_corrected_axes/bounding_box_tracklet_{tracklet.obj_id}.pt')
+        tracklet.save(f'pandaset_tracklets/seq_011_reworked_dataparser_001/bounding_box_tracklet_{tracklet.obj_id}.pt')
 
         otg.remove_points_object_not_visible(tracklet=tracklet)
         otg.remove_physically_implausible_points(tracklet=tracklet)
+
+        
 
         # tracklet.x += 0.5e-2 # 0.5m
 
@@ -68,11 +72,19 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 
     # obj_metadata[1:, 0] = random_obj_model_ids
 
+    # exit()
+
     randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds=cam2world, n_closest_objects=5)
 
     positions, yaws = insert_synthetic_trajectories(bounding_box_tracklets_list, n_samples=n_cams)
 
     write_to_obj_location_data(obj_location_data, positions, yaws)
+
+    closest_model_ids = get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2world, n_closest_objects=5)
+
+    indices = get_indices_from_object_model_ids(obj_metadata, closest_model_ids) - 1
+
+    obj_location_data = obj_location_data[indices]
 
     # exit()
 
@@ -81,19 +93,35 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 def randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds, n_closest_objects=5):
     """Randomize object models based on the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
 
-    bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
-
-    keys_to_dists = {key: otg.get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys}
-
-    sorted_keys_asc_dist = sorted(bounding_box_tracklet_keys, key=lambda x: keys_to_dists[x])
-
-    random_indices = torch.randint(0, n_closest_objects, (len(bounding_box_tracklet_keys),))
+    sorted_keys_asc_dist = get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2worlds, n_closest_objects=n_closest_objects)
+    random_indices = torch.randint(0, n_closest_objects, (len(bounding_box_tracklets),))
     random_obj_model_ids = torch.tensor([sorted_keys_asc_dist[i] for i in random_indices])
 
     obj_metadata[1:, 0] = random_obj_model_ids
 
     return obj_metadata
 
+
+def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5):
+    """Get the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
+
+    bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
+
+    keys_to_dists = {key: otg.get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys}
+
+    sorted_keys_asc_dist = sorted(bounding_box_tracklet_keys, key=lambda x: keys_to_dists[x])
+
+    return sorted_keys_asc_dist[:n_closest_objects]
+
+
+def get_indices_from_object_model_ids(obj_metadata, object_model_ids):
+    """Get the indices of the object_model_ids in the obj_metadata tensor."""
+
+    indices = torch.tensor([i for i, obj_model_id in enumerate(obj_metadata[1:, 0]) if obj_model_id in object_model_ids])
+
+    # print(indices)
+
+    return indices
 
 
 def insert_synthetic_trajectories(tracklets: list[BoundingBoxTracklet], n_samples=79):
@@ -120,3 +148,10 @@ def write_to_obj_location_data(obj_location_data, positions, yaws):
         # yaw = batch_objects_dyn_row[..., 3]
         batch_objects_dyn_row[..., :3] = positions[i]
         batch_objects_dyn_row[..., 3] = yaws[i]
+
+
+
+
+def get_object_models_from_other_scenes():
+    """Get object models from other scenes."""
+    pass
