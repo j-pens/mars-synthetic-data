@@ -101,7 +101,7 @@ def remove_points_object_not_visible(tracklet: BoundingBoxTracklet):
     valid_indices = tracklet.original_indices[remove_invalid_points_condition]
     tracklet.original_indices = valid_indices
 
-    print(f'Valid points for tracklet {tracklet.obj_model_id}: {valid_indices}')
+    # print(f'Valid points for tracklet {tracklet.obj_model_id}: {valid_indices}')
 
 
     invalid_x = tracklet.x[~remove_invalid_points_condition]
@@ -110,7 +110,7 @@ def remove_points_object_not_visible(tracklet: BoundingBoxTracklet):
 
     invalid_points = torch.stack((invalid_x, invalid_y, invalid_z), dim=1)
 
-    print(f'Invalid points for tracklet {tracklet.obj_model_id}: {invalid_points.shape}')
+    # print(f'Invalid points for tracklet {tracklet.obj_model_id}: {invalid_points.shape}')
 
     # TODO: Extend for other tensors in tracklet
     tracklet.x = tracklet.x[remove_invalid_points_condition]
@@ -157,7 +157,11 @@ def sample_with_jitter(n, lower=0, upper=1.0, jitter=0.25):
 
 
 def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10):
-    grid_3d = spline_grid_class(resolution=min(resolution, tracklet.x.shape[0]), n_channels=3)
+    
+    # Limit to N_CONTROL_POINTS, or half of the tracklet length, whichever is smaller, but at least 2
+    resolution = max(min(resolution, tracklet.x.shape[0]//7), 2)
+
+    grid_3d = spline_grid_class(resolution=resolution, n_channels=3)
     optimiser = torch.optim.Adam(grid_3d.parameters(), lr=0.05)
 
     for i in range(optimization_steps):
@@ -202,7 +206,7 @@ def calculate_yaw(positions: torch.Tensor):
     # Normalize facing vectors
     facing_vectors = facing_vectors / torch.norm(facing_vectors, dim=1).unsqueeze(-1)
 
-    print(facing_vectors)
+    # print(facing_vectors)
 
     # Calculate yaw
     yaws = torch.atan2(facing_vectors[:, 1], facing_vectors[:, 0])
@@ -218,27 +222,27 @@ def remove_physically_implausible_points(tracklet: BoundingBoxTracklet):
 
     velocities, accelerations = get_dynamics(tracklet=tracklet)
 
-    print(velocities.shape, accelerations.shape)
+    # print(velocities.shape, accelerations.shape)
 
     implausible_velocities_mask = velocities > MAX_VELOCITY
     implausible_accelerations_mask = accelerations > MAX_ACCELERATION
 
-    print(implausible_velocities_mask.shape)
-    print(implausible_accelerations_mask.shape)
+    # print(implausible_velocities_mask.shape)
+    # print(implausible_accelerations_mask.shape)
 
     # implausible_velocities_mask = torch.cat((torch.zeros((1), dtype=torch.bool), implausible_velocities_mask))
     # implausible_accelerations_mask = torch.cat((torch.zeros((2), dtype=torch.bool), implausible_accelerations_mask))
 
-    print(implausible_velocities_mask.shape)
-    print(implausible_accelerations_mask.shape)
+    # print(implausible_velocities_mask.shape)
+    # print(implausible_accelerations_mask.shape)
 
-    print(implausible_velocities_mask.dtype)
+    # print(implausible_velocities_mask.dtype)
 
     implausible_points_mask = implausible_velocities_mask | implausible_accelerations_mask
 
     implausible_indices = torch.nonzero(implausible_points_mask)
 
-    print(implausible_indices)
+    # print(implausible_indices)
 
     tracklet.x = tracklet.x[~implausible_points_mask]
     tracklet.y = tracklet.y[~implausible_points_mask]
