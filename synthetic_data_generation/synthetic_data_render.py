@@ -46,13 +46,13 @@ from nerfstudio.data.utils.data_utils import get_depth_image_from_path
 from nerfstudio.model_components.losses import normalized_depth_scale_and_shift
 from nerfstudio.pipelines.base_pipeline import Pipeline
 from nerfstudio.utils import colormaps, install_checks
-# from nerfstudio.utils.eval_utils import eval_setup
+from nerfstudio.utils.eval_utils import eval_setup
 from nerfstudio.utils.rich_utils import ItersPerSecColumn
 from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_length
 
 from nerfstudio.utils.tensor_dataclass import TensorDataclass
 
-from custom_eval_utils import eval_setup
+from custom_eval_utils import eval_setup as custom_eval_setup
 from scene_manipulation import manipulate_scene_trajectories
 
 CONSOLE = Console(width=120)
@@ -114,7 +114,7 @@ def _render_trajectory_video(
     print(f'obj_metadata shape: {obj_metadata.shape}')
 
 
-    manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
+    # manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
 
     cameras = cameras.to(pipeline.device)
 
@@ -402,7 +402,7 @@ class RenderTrajectory:
     # Name of the output file.
     output_path: Path = Path("renders/output.mp4")
     # How long the video should be.
-    seconds: float = 5.0
+    seconds: float = 8
     # How to save output data.
     output_format: Literal["images", "video"] = "video"
     # Specifies number of rays per chunk during eval.
@@ -454,7 +454,7 @@ class RenderTrajectory:
         render_width = camera_path.image_width[0]
         render_height = camera_path.image_height[0]
 
-        seconds = 5
+        seconds = 8
 
         camera_type = CameraType.PERSPECTIVE
         # for i, fov in enumerate(FOV):
