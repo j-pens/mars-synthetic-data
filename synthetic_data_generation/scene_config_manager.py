@@ -54,11 +54,12 @@ class SceneConfigManager():
         return self.config_storage[scene_name]
     
 
-    def add_scene_config(self, scene_name, scene_config_path):
+    def add_scene_config(self, scene_config_path):
         if self.config_path_in_config_storage(scene_config_path):
             print(f'Scene config {scene_config_path} already in config storage.')
             return
-        scene_config = self.get_scene_config(scene_config_path)        
+        scene_config = self.get_scene_config(scene_config_path)
+        scene_name = scene_config.scene_name
         if scene_name in self.config_storage:
             self.config_storage[scene_name].append(scene_config)
         else: 
@@ -77,7 +78,7 @@ class SceneConfigManager():
             full_scene_config = yaml.load(file, Loader=yaml.BaseLoader)
 
         dataparser = full_scene_config['pipeline']['datamanager']['dataparser']
-        scene_name = dataparser['seq_name']
+        scene_name = str(dataparser['seq_name'])
         cameras = dataparser['cameras_name_list']
 
         is_night = scene_name in night_sequences
@@ -106,11 +107,11 @@ class SceneConfigManager():
 
 
 
-def create_scene_config_manager(config_store_path: str, scene_name: str='', scene_config_path: str='', ):
+def create_scene_config_manager(config_store_path: str, scene_config_path: str=''):
     scene_config_manager = SceneConfigManager(config_store_path)
 
-    if scene_name is not None and scene_config_path is not None:
-        scene_config_manager.add_scene_config(scene_name, scene_config_path)
+    if scene_config_path is not None:
+        scene_config_manager.add_scene_config(scene_config_path)
 
     scene_config_manager.save_config_storage()
 
