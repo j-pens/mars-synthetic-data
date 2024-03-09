@@ -894,7 +894,8 @@ class MarsPandasetParser(DataParser):
         
             if self.config.use_depth:
                 import glob
-                depth_camera_files = sorted(glob.glob(os.path.join(os.path.dirname(img_files[0]), 'depth', '*.npy')))
+                # depth_camera_files = sorted(glob.glob(os.path.join(os.path.dirname(img_files[0]), 'depth', '*.npy')))
+                depth_camera_files = sorted(glob.glob(os.path.join(seq._directory, 'monocular_depth', camera_name, '*.png')))
                 depth_name.extend(depth_camera_files[self.selected_frames[0]:self.selected_frames[1]])
 
         poses = np.array(poses)   
