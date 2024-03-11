@@ -1,6 +1,11 @@
+import re
 from nerfstudio.cameras.cameras import Cameras
 from object_trajectory_generation import BoundingBoxTracklet
 import object_trajectory_generation as otg
+
+import scene_config_manager as scm
+
+import object_model_selection as oms
 
 from torch_cubic_spline_grids import CubicCatmullRomGrid1d
 
@@ -80,7 +85,7 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 
     write_to_obj_location_data(obj_location_data, positions, yaws)
 
-    closest_model_ids = get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2world, n_closest_objects=5)
+    closest_model_ids = otg.get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2world, n_closest_objects=5)
 
     indices = get_indices_from_object_model_ids(obj_metadata, closest_model_ids) - 1
 
@@ -93,25 +98,13 @@ def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_d
 def randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds, n_closest_objects=5):
     """Randomize object models based on the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
 
-    sorted_keys_asc_dist = get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2worlds, n_closest_objects=n_closest_objects)
+    sorted_keys_asc_dist = otg.get_closest_object_model_ids(bounding_box_tracklets, cam2worlds=cam2worlds, n_closest_objects=n_closest_objects)
     random_indices = torch.randint(0, n_closest_objects, (len(bounding_box_tracklets),))
     random_obj_model_ids = torch.tensor([sorted_keys_asc_dist[i] for i in random_indices])
 
     obj_metadata[1:, 0] = random_obj_model_ids
 
     return obj_metadata
-
-
-def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5):
-    """Get the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
-
-    bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
-
-    keys_to_dists = {key: otg.get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys}
-
-    sorted_keys_asc_dist = sorted(bounding_box_tracklet_keys, key=lambda x: keys_to_dists[x])
-
-    return sorted_keys_asc_dist[:n_closest_objects]
 
 
 def get_indices_from_object_model_ids(obj_metadata, object_model_ids):
@@ -151,7 +144,11 @@ def write_to_obj_location_data(obj_location_data, positions, yaws):
 
 
 
-
-def get_object_models_from_other_scenes():
+def get_object_models_from_other_scenes(config_path):
     """Get object models from other scenes."""
-    pass
+    
+    scene_config_manager = scm.SceneConfigManager('synthetic_data_generation/scene_configs_decent_miraculix.yaml')
+
+    object_model_ids_from_other_scenes = oms.get_object_model_ids_from_other_scenes(scene_config_manager, config_path)
+
+    return object_model_ids_from_other_scenes

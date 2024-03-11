@@ -1,6 +1,8 @@
 import torch
 from dataclasses import dataclass
 from torch_cubic_spline_grids import CubicCatmullRomGrid1d
+from torch_cubic_spline_grids._base_cubic_grid import CubicSplineGrid
+from typing import Union, Tuple
 @dataclass(init=False)
 class BoundingBoxTracklet():
     """Bounding box class."""
@@ -156,7 +158,7 @@ def sample_with_jitter(n, lower=0, upper=1.0, jitter=0.25):
 
 
 
-def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10):
+def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10) -> Union[Tuple[CubicSplineGrid, torch.optim.Optimizer], CubicSplineGrid]:
     
     # Limit to N_CONTROL_POINTS, or half of the tracklet length, whichever is smaller, but at least 2
     resolution = max(min(resolution, tracklet.x.shape[0]//7), 2)
@@ -313,3 +315,17 @@ def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2)
     # print(point.shape)
 
     return sample_idx/(len(tracklet.x)-1), point 
+
+
+def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5):
+    """Get the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
+
+    # TODO: Adjust to handle sequences with fewer than n_closest_objects objects correctly
+
+    bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
+
+    keys_to_dists = {key: get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys}
+
+    sorted_keys_asc_dist = sorted(bounding_box_tracklet_keys, key=lambda x: keys_to_dists[x])
+
+    return sorted_keys_asc_dist[:n_closest_objects]

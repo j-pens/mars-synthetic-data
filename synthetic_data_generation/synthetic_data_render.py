@@ -53,7 +53,7 @@ from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_len
 from nerfstudio.utils.tensor_dataclass import TensorDataclass
 
 from custom_eval_utils import eval_setup as custom_eval_setup
-from scene_manipulation import manipulate_scene_trajectories
+from scene_manipulation import manipulate_scene_trajectories, get_object_models_from_other_scenes
 
 CONSOLE = Console(width=120)
 
@@ -283,38 +283,6 @@ def _render_trajectory_video(
             insert_spherical_metadata_into_file(output_filename)
 
 
-
-
-
-
-def get_bounding_box_from_tracklet(tracklet):
-    pass
-
-
-@dataclass(init=False)
-class Tracklet(TensorDataclass):
-    """Tracklet class."""
-
-    def __init__(self, x, y, z, yaw, width, height, length, obj_id):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.yaw = yaw
-        self.width = width
-        self.height = height
-        self.length = length
-        self.obj_id = obj_id
-        
-
-
-
-class CustomKittiDataSaver():
-    """Custom Kitti data saver. Saves files according to the custom kitti format supported by the mmdet3d repository."""
-
-    
-
-
-
 def insert_spherical_metadata_into_file(
     output_filename: Path,
 ) -> None:
@@ -416,6 +384,11 @@ class RenderTrajectory:
             eval_num_rays_per_chunk=self.eval_num_rays_per_chunk,
             test_mode="inference",
         )
+
+        print(self.load_config)
+        model_ids_from_other_scenes = get_object_models_from_other_scenes(self.load_config)
+        print(model_ids_from_other_scenes)
+
 
         install_checks.check_ffmpeg_installed()
 

@@ -1,8 +1,10 @@
 from operator import is_
+from venv import create
 from networkx import is_negatively_weighted
 import yaml
 import os
 import tyro
+from typing import Literal, Tuple, Union, List
 from dataclasses import dataclass, field
 
 @dataclass
@@ -40,8 +42,10 @@ class SceneConfigManager():
         self.config_storage_path = config_store_path
 
         if os.path.exists(self.config_storage_path):
+            print(f'Loading config storage from {self.config_storage_path}.')
             self.config_storage = self.load_config_storage()
         else:
+            print(f'No config storage found at {self.config_storage_path}. Creating new config storage.')
             self.config_storage = {}
 
     def load_config_storage(self):
@@ -51,7 +55,7 @@ class SceneConfigManager():
     
 
     def get_scene_config_path(self, scene_name):
-        return self.config_storage[scene_name]
+        return self.config_storage[scene_name].scene_config_path
     
 
     def add_scene_config(self, scene_config_path):
@@ -66,10 +70,10 @@ class SceneConfigManager():
             self.config_storage[scene_name] = [scene_config]
         self.save_config_storage()
 
-    def config_path_in_config_storage(self, scene_name_config_path):
+    def config_path_in_config_storage(self, scene_config_path):
         for v in self.config_storage.values():
             for scene_config in v:
-                if scene_config.scene_config_path == scene_name_config_path:
+                if scene_config.scene_config_path == scene_config_path:
                     return True
         return False
 
@@ -101,19 +105,70 @@ class SceneConfigManager():
         )
         return scene_config
     
+    def get_scene_configs_filtered(self, match_all=True, **kwargs) -> List[SceneConfig]:
+        exclude_scenes = []
+        scene_configs = []
+            
+        if 'exclude_scenes' in kwargs:
+            exclude_scenes = kwargs.pop('exclude_scenes')
+
+        match_fn = all if match_all else any
+        for v in self.config_storage.values():
+            for scene_config in v:
+                if match_fn(getattr(scene_config, k, None) == v for k, v in kwargs.items()) and str(scene_config.scene_name) not in exclude_scenes:
+                    scene_configs.append(scene_config)
+        return scene_configs
+
+
     def save_config_storage(self):
         with open(self.config_storage_path, 'w') as file:
             yaml.dump(self.config_storage, file)
 
 
 
-def create_scene_config_manager(config_store_path: str, scene_config_path: str=''):
+def create_scene_config_store(config_store_path: str, scene_config_path: str=''):
+    '''Create a scene config storage file and add a scene config to it. 
+    If the file already exists, the scene config is added to it.'''
+
     scene_config_manager = SceneConfigManager(config_store_path)
 
-    if scene_config_path is not None:
+    if scene_config_path != '':
         scene_config_manager.add_scene_config(scene_config_path)
 
     scene_config_manager.save_config_storage()
 
+
+
+def add_scene_config(config_store_path: str, scene_config_path: str):
+    '''Add a scene config to the scene config storage file.'''
+    scene_config_manager = SceneConfigManager(config_store_path)
+
+    if scene_config_path != '':
+        scene_config_manager.add_scene_config(scene_config_path)
+
+    scene_config_manager.save_config_storage()
+
+
+def get_day_scene_configs(config_store_path: str):
+    '''Get all day scene configs from the scene config storage file.'''
+    scene_config_manager = SceneConfigManager(config_store_path)
+
+    day_configs = scene_config_manager.get_scene_configs_filtered(light_condition='day')
+
+    print([config.scene_name for config in day_configs])
+    
+
+def main():
+    tyro.extras.subcommand_cli_from_dict(
+        {
+            'new': create_scene_config_store,
+            'add': add_scene_config,
+            'get_day_configs': get_day_scene_configs
+        }
+    )
+
+
+
+
 if __name__ == '__main__':
-    tyro.cli(create_scene_config_manager)
+    main()

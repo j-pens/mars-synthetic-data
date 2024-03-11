@@ -11,8 +11,6 @@ from nerfstudio.data.dataparsers.base_dataparser import DataparserOutputs
 from mars.data.mars_pandaset_dataparser import MarsPandasetDataParserConfig, MarsPandasetParser
 from mars.models.scene_graph import SceneGraphModelConfig, SceneGraphModel
 
-from synthetic_data_render import _render_trajectory_video
-
 from dataclasses import dataclass, field
 import os
 import yaml
@@ -29,13 +27,13 @@ from pathlib import Path
 class MarsPipelineCheckpoint:
     """Mars pipeline checkpoint."""
 
-    def __init__(self, checkpoint_dir):
+    def __init__(self, config_path):
         """Initialize."""
 
-        self.checkpoint_dir = checkpoint_dir
+        self._checkpoint_dir: str
         """Directory of run with checkpoint."""
 
-        self.config_path = Path(os.path.join(os.path.dirname(self.checkpoint_dir), '..', "config.yml"))
+        self.config_path = config_path
         """Config path."""
 
         self._loaded_state = None
@@ -65,6 +63,13 @@ class MarsPipelineCheckpoint:
             self.load_config()
         return self._config
 
+    @property
+    def checkpoint_dir(self):
+        """Checkpoint directory."""
+        if self._checkpoint_dir is None:
+            self._checkpoint_dir = os.path.join(os.path.dirname(self.config_path), self.config.relative_model_dir)
+        return self._checkpoint_dir
+
     def load_state(self):
         """Load state from torch checkpoint."""
         self._loaded_state = torch.load(self.checkpoint_dir, map_location="cpu")
@@ -73,7 +78,8 @@ class MarsPipelineCheckpoint:
     def load_config(self):
         """Load config from yaml file."""
         # Unsafe load, but we have to trust the config file here
-        self._config: TrainerConfig = yaml.load(self.config_path.read_text(), Loader=yaml.Loader)
+        with open(self.config_path, "r") as f:
+            self._config = yaml.load(f, Loader=yaml.Loader)
 
     def get_background_model_config(self):
         """Get background model config."""
