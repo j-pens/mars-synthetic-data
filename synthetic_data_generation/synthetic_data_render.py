@@ -54,6 +54,8 @@ from nerfstudio.utils.tensor_dataclass import TensorDataclass
 
 from custom_eval_utils import eval_setup as custom_eval_setup
 from scene_manipulation import manipulate_scene_trajectories, get_object_models_from_other_scenes
+import scene_manipulation as scm
+import object_model_selection as oms
 
 CONSOLE = Console(width=120)
 
@@ -113,7 +115,8 @@ def _render_trajectory_video(
     obj_metadata = pipeline.datamanager.train_dataset.metadata["obj_metadata"]
     print(f'obj_metadata shape: {obj_metadata.shape}')
 
-
+    obj_model_ids = oms.select_object_model_ids(pipeline.model)
+    scm.randomize_object_models_given_key_strings(obj_model_ids=obj_model_ids, obj_metadata=obj_metadata)
     # manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
 
     cameras = cameras.to(pipeline.device)
@@ -387,8 +390,8 @@ class RenderTrajectory:
 
         print(self.load_config)
         model_ids_from_other_scenes = get_object_models_from_other_scenes(self.load_config)
-        print(model_ids_from_other_scenes)
 
+        oms.add_object_models_to_scene_graph(pipeline.model, model_ids_from_other_scenes)
 
         install_checks.check_ffmpeg_installed()
 

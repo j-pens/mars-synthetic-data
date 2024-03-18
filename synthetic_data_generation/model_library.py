@@ -30,7 +30,7 @@ class MarsPipelineCheckpoint:
     def __init__(self, config_path):
         """Initialize."""
 
-        self._checkpoint_dir: str
+        self._checkpoint_dir = None
         """Directory of run with checkpoint."""
 
         self.config_path = config_path
@@ -72,7 +72,10 @@ class MarsPipelineCheckpoint:
 
     def load_state(self):
         """Load state from torch checkpoint."""
-        self._loaded_state = torch.load(self.checkpoint_dir, map_location="cpu")
+        checkpoint_files_to_steps = {f: int(f[:-len(".ckpt")].split('-')[-1]) for f in os.listdir(self.checkpoint_dir) if f.endswith(".ckpt")}
+        checkpoint_files = list(checkpoint_files_to_steps.keys())
+        checkpoint_files.sort(key=lambda x: checkpoint_files_to_steps[x])
+        self._loaded_state = torch.load(os.path.join(self.checkpoint_dir, checkpoint_files[-1]), map_location="cpu")
 
 
     def load_config(self):
@@ -96,7 +99,7 @@ class MarsPipelineCheckpoint:
     
     def get_object_model_keys(self, object_model_id):
         """Get keys for object model."""
-        return [k for k in self.state['pipeline'] if object_model_id in k]
+        return [k for k in self.state['pipeline'] if str(object_model_id) in k and not 'background_model' in k and 'object_model' in k]
 
     def get_background_model_keys(self):
         return [k for k in self.state['pipeline'] if 'background_model' in k]
@@ -104,6 +107,7 @@ class MarsPipelineCheckpoint:
     def get_object_model_state(self, object_model_id):
         """Get state for single object model."""
         object_model_keys = self.get_object_model_keys(object_model_id)
+        print(object_model_keys)
         single_object_model_state = {'.'.join(k.split('.')[3:]): v for k, v in self.state['pipeline'].items() if k in object_model_keys}
         return single_object_model_state
 

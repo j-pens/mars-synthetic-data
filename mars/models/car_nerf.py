@@ -203,7 +203,7 @@ class CarNeRF(Model):
 
             field_outputs_coarse = self.fields(
                 gaussian_samples.mean.view(1, -1, 3),
-                self.car_latents[int(obj_id)].view(1, -1).to(obj_id.device),
+                self.car_latents[int(str(int(obj_id))[-4:])].view(1, -1).to(obj_id.device),
                 viewdirs=ray_samples_uniform.frustums.directions.reshape(1, -1, 3),
                 covs=torch.diagonal(gaussian_samples.cov, dim1=-2, dim2=-1).view(1, -1, 3),
             )
@@ -221,7 +221,7 @@ class CarNeRF(Model):
 
             field_outputs_fine = self.fields(
                 gaussian_samples_fine.mean.view(1, -1, 3),
-                self.car_latents[int(obj_id)].view(1, -1).to(obj_id.device),
+                self.car_latents[int(str(int(obj_id))[-4:])].view(1, -1).to(obj_id.device),
                 viewdirs=ray_samples_pdf.frustums.directions.reshape(1, -1, 3),
                 covs=torch.diagonal(gaussian_samples_fine.cov, dim1=-2, dim2=-1).view(1, -1, 3),
             )
@@ -277,7 +277,7 @@ class CarNeRF(Model):
 
             field_outputs_coarse = self.fields(
                 gaussian_samples.mean.view(1, -1, 3),
-                self.car_latents[int(obj_id)].view(1, -1),
+                self.car_latents[int(str(int(obj_id))[-4:])].view(1, -1),
                 viewdirs=ray_samples_uniform.frustums.directions.reshape(1, -1, 3),
                 covs=torch.diagonal(gaussian_samples.cov, dim1=-2, dim2=-1).view(1, -1, 3),
             )
@@ -299,7 +299,7 @@ class CarNeRF(Model):
 
             field_outputs_fine = self.fields(
                 gaussian_samples_fine.mean.view(1, -1, 3),
-                self.car_latents[int(obj_id)].view(1, -1),
+                self.car_latents[int(str(int(obj_id))[-4:])].view(1, -1),
                 viewdirs=ray_samples_pdf.frustums.directions.reshape(1, -1, 3),
                 covs=torch.diagonal(gaussian_samples_fine.cov, dim1=-2, dim2=-1).view(1, -1, 3),
             )

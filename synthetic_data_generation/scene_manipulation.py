@@ -107,6 +107,15 @@ def randomize_object_models(bounding_box_tracklets, obj_metadata, cam2worlds, n_
     return obj_metadata
 
 
+def randomize_object_models_given_key_strings(obj_model_ids, obj_metadata):
+    random_indices = torch.randint(0, len(obj_model_ids), (obj_metadata.shape[0]-1,))
+    random_obj_model_ids = torch.tensor([obj_model_ids[i] for i in random_indices])
+
+    obj_metadata[1:, 0] = random_obj_model_ids
+
+    return obj_metadata
+
+
 def get_indices_from_object_model_ids(obj_metadata, object_model_ids):
     """Get the indices of the object_model_ids in the obj_metadata tensor."""
 

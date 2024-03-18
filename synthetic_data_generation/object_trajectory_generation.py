@@ -19,7 +19,7 @@ class BoundingBoxTracklet():
     original_indices: torch.Tensor
     tracklet_to_meters_factor: int
 
-    def __init__(self, x, y, z, yaw, dx, dy, dz, class_id, obj_id, obj_model_id):
+    def __init__(self, x, y, z, yaw, dx, dy, dz, class_id, obj_id, obj_model_id, original_indices):
         self.x = x
         self.y = y
         self.z = z
@@ -30,7 +30,7 @@ class BoundingBoxTracklet():
         self.class_id = class_id
         self.obj_id = obj_id
         self.obj_model_id = obj_model_id
-        self.original_indices = torch.arange(x.shape[0])
+        self.original_indices = original_indices
         self.tracklet_to_meters_factor = 100
 
         # No real dataclass usage for now, let's see if we need it at some point
@@ -48,9 +48,6 @@ class BoundingBoxTracklet():
 def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[int, BoundingBoxTracklet]:
     """Get tracklets with object ids."""
     
-    # first row is constant, and irrelevant, so I remove it
-    obj_metadata = obj_metadata[1:, :]
-
     # object indice in the full metadata, including the first row
     obj_idx = batch_objects_dyn[..., 4]
 
@@ -64,31 +61,37 @@ def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[
     class_ids = obj_metadata[:, 4]
 
     tracklets = {}
-    for i, obj_id in enumerate(object_model_ids):
-        obj_model_id = int(obj_id.item())
-        batch_objects_dyn_row = batch_objects_dyn[..., i, :]
+    # skip the first row as it is for non-objects
+    for obj_index in range(1, obj_metadata.shape[0]):
+        obj_model_id = int(obj_metadata[obj_index, 0].item())
+
+        # Get the annotations for the object model
+        obj_index_mask = batch_objects_dyn[..., 4] == obj_index
+        # print(f'obj_index_mask: {obj_index_mask.shape}')
+
+        indices = torch.nonzero(obj_index_mask, as_tuple=True)[0]
+
+        batch_object_obj_idx = batch_objects_dyn[obj_index_mask, :]
+        # print(f'batch_object_obj_idx: {batch_object_obj_idx.shape}')
 
         # position of the object: x, y, z
-        pos = batch_objects_dyn_row[..., :3]
+        pos = batch_object_obj_idx[..., :3]
         
         xs = pos[..., 0]
         ys = pos[..., 1]
         zs = pos[..., 2]
 
-        yaw = batch_objects_dyn_row[..., 3]
+        yaw = batch_object_obj_idx[..., 3]
 
-        dimensions_obj = dimensions[i]
+        dimensions_obj = dimensions[obj_index]
 
         dxs = dimensions_obj[0]
         dys = dimensions_obj[1]
         dzs = dimensions_obj[2]
 
-        # obj_index references based on the index in the complete object metadata, including the first row
-        obj_index = int(obj_idx[0, i].item())
+        class_id = int(class_ids[obj_index].item())
 
-        class_id = int(class_ids[i].item())
-
-        tracklets[obj_model_id] = BoundingBoxTracklet(xs, ys, zs, yaw, dxs, dys, dzs, class_id, obj_index, obj_model_id)
+        tracklets[obj_model_id] = BoundingBoxTracklet(xs, ys, zs, yaw, dxs, dys, dzs, class_id, obj_index, obj_model_id, indices)
 
     return tracklets
 
