@@ -68,9 +68,6 @@ def get_object_model_ids_from_other_scenes(scene_config_manager: SceneConfigMana
         # Check distances and number of frames in which the object is visible
         # Return 'good' object models
 
-        if config.scene_name in ['015', '008', '013', '139', '005', '003', '001']:
-            continue
-
         config_path = config.scene_config_path
 
         print(config_path)
@@ -105,6 +102,10 @@ def get_object_model_ids_from_other_scenes(scene_config_manager: SceneConfigMana
 
         print(bounding_box_tracklets.keys())
 
+        n_frames_min = 15
+
+        bounding_box_tracklets = {key: bounding_box_tracklets[key] for key in bounding_box_tracklets.keys() if bounding_box_tracklets[key].original_indices.shape[0] > n_frames_min}
+
         # TODO: Rework this part based on loss function of the object models
         n_closest_objects = 5
         closest_model_ids = otg.get_closest_object_model_ids(bounding_box_tracklets=bounding_box_tracklets, cam2worlds=scene_cameras.camera_to_worlds, n_closest_objects=n_closest_objects)
@@ -113,8 +114,8 @@ def get_object_model_ids_from_other_scenes(scene_config_manager: SceneConfigMana
 
         object_models_ids_from_other_scenes.append(ObjectModelsIDsFromOtherScene(scene_name=config.scene_name, object_model_ids=closest_model_ids, scene_checkpoint=checkpoint))
 
-        if len(object_models_ids_from_other_scenes) >= 2:
-            break
+        # if len(object_models_ids_from_other_scenes) >= 2:
+        #     break
 
     return object_models_ids_from_other_scenes
 

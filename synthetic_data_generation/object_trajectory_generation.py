@@ -320,15 +320,15 @@ def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2)
     return sample_idx/(len(tracklet.x)-1), point 
 
 
-def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5):
+def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5, max_distance=25):
     """Get the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
-
-    # TODO: Adjust to handle sequences with fewer than n_closest_objects objects correctly
 
     bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
 
-    keys_to_dists = {key: get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys}
+    min_distances = [get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys]
 
-    sorted_keys_asc_dist = sorted(bounding_box_tracklet_keys, key=lambda x: keys_to_dists[x])
+    keys_to_dists = {key: min_distances[i] for i, key in enumerate(bounding_box_tracklet_keys) if min_distances[i] < max_distance}
+
+    sorted_keys_asc_dist = sorted(list(keys_to_dists.keys()), key=lambda x: keys_to_dists[x])
 
     return sorted_keys_asc_dist[:n_closest_objects]

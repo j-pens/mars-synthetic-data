@@ -50,12 +50,11 @@ from nerfstudio.utils.eval_utils import eval_setup
 from nerfstudio.utils.rich_utils import ItersPerSecColumn
 from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_length
 
-from nerfstudio.utils.tensor_dataclass import TensorDataclass
-
 from custom_eval_utils import eval_setup as custom_eval_setup
 from scene_manipulation import manipulate_scene_trajectories, get_object_models_from_other_scenes
 import scene_manipulation as scm
 import object_model_selection as oms
+from camera_trajectory_generation import get_camera_trajectory
 
 CONSOLE = Console(width=120)
 
@@ -91,6 +90,7 @@ def _render_trajectory_video(
 
     # torch.save(cameras.camera_to_worlds, "pandaset_tracklets/seq_011_corrected_axes/cameras_to_worlds.pt")
 
+    cameras = cameras[10:60]
     initial_cameras = cameras
 
     # cameras = cameras[:5]
@@ -388,6 +388,8 @@ class RenderTrajectory:
             test_mode="inference",
         )
 
+        camera_path = get_camera_trajectory(pipeline.datamanager.train_dataset.cameras)
+
         print(self.load_config)
         model_ids_from_other_scenes = get_object_models_from_other_scenes(self.load_config)
 
@@ -425,12 +427,12 @@ class RenderTrajectory:
 
         FOV = torch.tensor(([30, 26, 22]), dtype=torch.float32)
         # camera_path = pipeline.datamanager.eval_dataset.cameras
-        camera_path = pipeline.datamanager.train_dataset.cameras
+        # camera_path = pipeline.datamanager.train_dataset.cameras
 
         render_width = camera_path.image_width[0]
         render_height = camera_path.image_height[0]
 
-        seconds = 8
+        seconds = 5
 
         camera_type = CameraType.PERSPECTIVE
         # for i, fov in enumerate(FOV):

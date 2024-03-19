@@ -56,7 +56,7 @@ CONSOLE = Console(width=120)
 # I didn't put pedestrian, many other classes are available: https://github.com/scaleapi/pandaset-devkit/blob/master/docs/annotation_instructions_cuboids.pdf
 _sem2label_pandaset = {"Car": 0, "Pickup Truck": 0, "Medium-sized Truck": 2, "Semi-truck": 2, "Tram / Subway": 3, "Train": 3, "Trolley": 3}
 
-_new_sem2label_pandaset = {'Bus': 4}
+_new_sem2label_pandaset = {'Bus': 3}
 # TODO: Add "Bus" without messing up the order of the other objects, i.e. the object model ids
 # Add "new" objects after the existing ones, i.e. after the last object model id
 

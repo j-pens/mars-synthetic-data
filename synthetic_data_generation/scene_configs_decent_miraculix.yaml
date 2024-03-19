@@ -104,6 +104,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-11_220043/config.yml
   scene_name: '021'
+'119':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-11_211357/config.yml
+  scene_name: '119'
 '139':
 - !SceneConfig
   cameras:
