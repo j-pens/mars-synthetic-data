@@ -726,6 +726,12 @@ def ray_box_intersection(ray_o, ray_d, aabb_min=None, aabb_max=None):
     # if not intersection_map.shape[0] == 0:
     #     z_ray_in = tf.gather_nd(t_near, intersection_map)
     #     z_ray_out = tf.gather_nd(t_far, intersection_map)
+    
+    # TODO: Hotfix if there is only one object but there might be some deeper issue here
+    if intersection_map.shape[1] <= 1:
+        # print(f'Intersection map: {intersection_map}')
+        return None, None, None
+
     if not intersection_map.shape[0] == 0:
         z_ray_in = t_near[intersection_map[:, 0], intersection_map[:, 1]]
         z_ray_out = t_far[intersection_map[:, 0], intersection_map[:, 1]]
