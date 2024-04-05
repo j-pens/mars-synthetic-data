@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import cv2
+from matplotlib.pyplot import hist
 import mediapy as media
 import numpy as np
 import torch
@@ -55,6 +56,7 @@ from scene_manipulation import manipulate_scene_trajectories, get_object_models_
 import scene_manipulation as scm
 import object_model_selection as oms
 from camera_trajectory_generation import get_camera_trajectory
+import object_trajectory_generation as otg
 
 CONSOLE = Console(width=120)
 
@@ -90,8 +92,8 @@ def _render_trajectory_video(
 
     # torch.save(cameras.camera_to_worlds, "pandaset_tracklets/seq_011_corrected_axes/cameras_to_worlds.pt")
 
-    cameras = cameras[10:60]
     initial_cameras = cameras
+    cameras = cameras[10:60]
 
     # cameras = cameras[:5]
     # cameras = cameras.to(pipeline.device)
@@ -115,9 +117,21 @@ def _render_trajectory_video(
     obj_metadata = pipeline.datamanager.train_dataset.metadata["obj_metadata"]
     print(f'obj_metadata shape: {obj_metadata.shape}')
 
-    obj_model_ids = oms.select_object_model_ids(pipeline.model)
-    scm.randomize_object_models_given_key_strings(obj_model_ids=obj_model_ids, obj_metadata=obj_metadata)
+    # obj_model_ids = oms.select_object_model_ids(pipeline.model)
+    # scm.randomize_object_models_given_key_strings(obj_model_ids=obj_model_ids, obj_metadata=obj_metadata)
     # manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
+
+    tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
+
+    histograms = oms.get_angular_bins_tracklets(tracklets=tracklets.values(), cam2worlds=initial_cameras.camera_to_worlds, n_bins=4096)
+
+    stats = oms.get_angular_bins_stats(histograms=histograms)
+
+    print(stats)
+
+    histograms_by_ids = {id: torch.nonzero(histograms[i]) for i, id in enumerate(tracklets.keys())}
+
+    # print(histograms_by_ids)
 
     cameras = cameras.to(pipeline.device)
 
@@ -390,10 +404,10 @@ class RenderTrajectory:
 
         camera_path = get_camera_trajectory(pipeline.datamanager.train_dataset.cameras)
 
-        print(self.load_config)
-        model_ids_from_other_scenes = get_object_models_from_other_scenes(self.load_config)
+        # print(self.load_config)
+        # model_ids_from_other_scenes = get_object_models_from_other_scenes(self.load_config)
 
-        oms.add_object_models_to_scene_graph(pipeline.model, model_ids_from_other_scenes)
+        # oms.add_object_models_to_scene_graph(pipeline.model, model_ids_from_other_scenes)
 
         install_checks.check_ffmpeg_installed()
 
