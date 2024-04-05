@@ -6,6 +6,8 @@ import pandas as pd
 from PIL import Image, ImageDraw
 import random
 import json
+import shutil
+import mediapy as media
 
 class PandaSetDataSetSaver():
 
@@ -32,7 +34,7 @@ class PandaSetSequenceSaver():
     _save_state: Dict[str, int]
 
     # by default leave out lidar
-    def __init__(self, dataset_root_path: str, sequence_name, types_of_data=['meta', 'camera', 'annotations/cuboids']):
+    def __init__(self, dataset_root_path: str, sequence_name, types_of_data=['meta', 'camera', 'annotations/cuboids', 'lidar']):
         self.root_path = os.path.join(dataset_root_path, sequence_name)
         self.sequence_name = sequence_name
         self._data_paths = self.init_sequence_dirs(types_of_data=types_of_data)
@@ -75,7 +77,7 @@ class PandaSetSequenceSaver():
 
         image_path = os.path.join(dir_path, f'{image_idx:02d}.jpg')
 
-        image.save(image_path)
+        media.write_image(image_path, image, fmt='jpeg')
 
         self.update_save_state(type_of_data)
 
@@ -92,12 +94,15 @@ class PandaSetSequenceSaver():
 
             cuboids.to_pickle(cuboids_path)
 
-
-    def save_lidar_info(self, poses):
-        pass
+            self.update_save_state(type_of_data)
 
 
-    def save_camera_info(self, camera_name, poses, intrinsics: dict):
+    def save_lidar_poses(self, lidar_poses_path: str):
+        shutil.copy(lidar_poses_path, self.get_data_path('lidar'), follow_symlinks=True)
+
+
+
+    def save_camera_info(self, camera_name, poses: list[dict], intrinsics: dict):
         dir_path = os.path.join(self.get_data_path('camera'), camera_name)
         if not camera_name in self._camera:
             os.makedirs(dir_path, exist_ok=True)
@@ -108,6 +113,8 @@ class PandaSetSequenceSaver():
         with open(intrinsics_path, 'w') as f:
             json.dump(intrinsics, f)
 
+        with open(poses_path, 'w') as f:
+            json.dump(poses, f)
 
     def save_meta_data(self, data):
         pass

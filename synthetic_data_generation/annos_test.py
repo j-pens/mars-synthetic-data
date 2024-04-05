@@ -16,6 +16,7 @@ from typing import List, Optional
 import cv2
 import mediapy as media
 import numpy as np
+import pandaset
 import torch
 import tyro
 from rich.console import Console
@@ -39,6 +40,8 @@ import scene_manipulation as scm
 import object_model_selection as oms
 import object_trajectory_generation as otg
 import annotation_generation as ag
+
+import pandaset_saver
 
 
 def create_synthetic_annotations(pipeline: Pipeline):
@@ -72,12 +75,21 @@ def create_synthetic_annotations(pipeline: Pipeline):
 
     merged_cuboids_list_of_dfs = synthetic_pandaset_annotation_generator.merge_static_and_dynamic_cuboids(static_cuboids=static_cuboids, dynamic_cuboids=dynamic_cuboids)
 
+    synthetic_dataset_root = '/zfs/penshorn/master_thesis/datasets/synthetic/PandaSet_000'
+    synthetic_pandaset_saver = pandaset_saver.PandaSetDataSetSaver(root_path=synthetic_dataset_root)
+    sequence_saver = synthetic_pandaset_saver.add_sequence(sequence_name=sequence_name)
+    sequence_saver.save_cuboid_info(data=merged_cuboids_list_of_dfs)
 
-    print(np.abs(static_cuboids[0][['position.x', 'position.y', 'position.z', 'dimensions.x', 'dimensions.y', 'dimensions.z']].to_numpy()).max(axis=0))
-    print(np.abs(dynamic_cuboids[0][['position.x', 'position.y', 'position.z', 'dimensions.x', 'dimensions.y', 'dimensions.z']].to_numpy()).max(axis=0))
+    cameras = pipeline.datamanager.train_dataset.cameras
 
-    print(np.abs(all_cuboids[0][['position.x', 'position.y', 'position.z', 'dimensions.x', 'dimensions.y', 'dimensions.z']].to_numpy()).max(axis=0))
+    cameras_pandaset = synthetic_pandaset_annotation_generator.create_camera_poses(cameras=cameras)
+    
+    poses = cameras_pandaset['poses']
+    intrinsics = dict(fx=cameras_pandaset['fx'], fy=cameras_pandaset['fy'], cx=cameras_pandaset['cx'], cy=cameras_pandaset['cy'])
+    sequence_saver.save_camera_info(camera_name='front_camera', poses=poses, intrinsics=intrinsics)
 
+    lidar_path = synthetic_pandaset_annotation_generator.get_lidar_poses_path(original_sequence_name=sequence_name)
+    sequence_saver.save_lidar_info(lidar_path=lidar_path)
 
 
 @dataclass

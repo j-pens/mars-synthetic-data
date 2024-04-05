@@ -5,6 +5,9 @@ from object_trajectory_generation import BoundingBoxTracklet
 from uuid import uuid4
 import numpy as np
 import pandas as pd
+from nerfstudio.cameras.cameras import Cameras, CameraType
+import transforms3d as t3d
+import os
 
 
 # I didn't put pedestrian, many other classes are available: https://github.com/scaleapi/pandaset-devkit/blob/master/docs/annotation_instructions_cuboids.pdf
@@ -74,7 +77,7 @@ class SyntheticPandaSetAnnotationGenerator:
                 if original_index_int not in tracklets_by_frames:
                     tracklets_by_frames[original_index_int] = []
 
-                tracklets_by_frames[original_index_int].append([uuid, label, yaw[i].item(), stationary, camera_used, x[i].item(), y[i].item(), z[i].item() + dz/2, dx, dy, dz, object_motion])
+                tracklets_by_frames[original_index_int].append([uuid, label, yaw[i].item(), stationary, camera_used, x[i].item(), y[i].item(), z[i].item() - dz/2, dx, dy, dz, object_motion])
 
         print(tracklets_by_frames)
         dynamic_cuboids_dict_of_dfs = {}
@@ -89,12 +92,17 @@ class SyntheticPandaSetAnnotationGenerator:
 
     def merge_static_and_dynamic_cuboids(self, static_cuboids: list[pd.DataFrame], dynamic_cuboids: dict[int, pd.DataFrame]):
 
+        print(f'Length of static cuboids: {len(static_cuboids)}')
+
         merged_cuboids = []
-        for i in dynamic_cuboids.keys():
+        for i in range(len(static_cuboids)):
             static_cuboid = static_cuboids[i]
-            dynamic_cuboid = dynamic_cuboids[i]
-            merged_cuboid = pd.concat([static_cuboid, dynamic_cuboid], axis=0)
-            merged_cuboids.append(merged_cuboid)
+            if i in dynamic_cuboids:
+                dynamic_cuboid = dynamic_cuboids[i]
+                merged_cuboid = pd.concat([static_cuboid, dynamic_cuboid], axis=0)
+                merged_cuboids.append(merged_cuboid)
+            else:
+                merged_cuboids.append(static_cuboid)
 
         return merged_cuboids
 
@@ -108,8 +116,73 @@ class SyntheticPandaSetAnnotationGenerator:
         self._uuids.add(new_uuid)
 
         return new_uuid
+    
+
+
+    def create_camera_poses(self, cameras: Cameras):
+        """Create camera poses for synthetic dataset from nerfstudio cameras."""
+
+        fx = cameras[0].fx.item()
+        fy = cameras[0].fy.item()
+        cx = cameras[0].cx.item()
+        cy = cameras[0].cy.item()
+
+        camera_to_worlds = cameras.camera_to_worlds
+
+        camera_orientations = camera_to_worlds[:, :, :3]
+
+        camera_positions = camera_to_worlds[:, :, 3]
+
+        print(camera_orientations.shape)
+        print(camera_positions.shape)
+
+        # Explicitly defined to prevent small floating point values != 0
+        rot_x_pi = np.array([
+            [1, 0, 0],
+            [0, -1, 0],
+            [0, 0, -1]
+        ])
+        
+
+        poses = []
+        for rot_mat, position in zip(camera_orientations, camera_positions):        
+
+            orientation_rotated = rot_x_pi @ rot_mat.numpy()
+
+            quat = t3d.quaternions.mat2quat(orientation_rotated)
+            
+            pose = {
+                'position': {
+                    'x': position[0].item(),
+                    'y': position[1].item(),
+                    'z': position[2].item()
+                },
+                'heading': {
+                    'w': quat[0],
+                    'x': quat[1],
+                    'y': -quat[2], # to get original orientation as in the dataset
+                    'z': -quat[3] # to get original orientation as in the dataset
+                }
+            }
+
+            poses.append(pose)
+            
+        camera = {
+            'fx': fx,
+            'fy': fy,
+            'cx': cx,
+            'cy': cy,
+            'poses': poses
+        }
+
+        return camera
             
 
+    def get_lidar_poses_path(self, original_sequence_name: str):
+
+        sequence: ps.Sequence = self.dataset[original_sequence_name]
+
+        return os.path.join(sequence.lidar._directory, 'poses.json')
         
 
 
