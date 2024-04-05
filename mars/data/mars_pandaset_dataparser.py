@@ -57,6 +57,9 @@ CONSOLE = Console(width=120)
 _sem2label_pandaset = {"Car": 0, "Pickup Truck": 0, "Medium-sized Truck": 2, "Semi-truck": 2, "Tram / Subway": 3, "Train": 3, "Trolley": 3}
 
 _new_sem2label_pandaset = {'Bus': 3}
+
+camera_names = ['front_camera', 'front_left_camera', 'front_right_camera', 'left_camera', 'right_camera', 'back_camera']
+
 # TODO: Add "Bus" without messing up the order of the other objects, i.e. the object model ids
 # Add "new" objects after the existing ones, i.e. after the last object model id
 
@@ -290,6 +293,9 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
     n_scene_frames =  end_frame - start_frame + 1
     # Initialize an array to count the number of objects in each frame
     n_obj_in_frame = np.zeros(n_scene_frames)
+
+    frame_added = {}
+
     for frame_id in range(start_frame, end_frame + 1):
         cuboid_keeped = []
         cuboids_frame = cuboids[frame_id]
@@ -327,10 +333,15 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             # pandaset has 2 lidars, and provide to cuboid per object in order to manage timestamps differences.
             # in this case, the cuboid has sibling_id field which will contain the cuboid uuid in the other lidar.
             # to avoid object dupplication (latents), we will keep only one the these 2 cuboids, the one has the closest ts to camera images TS mean
+            
+            print(f'ID: {cuboid["uuid"]}')
+            print(f'ID sibling: {cuboid["cuboids.sibling_id"]}')
+            print(f'Sensor id: {cuboid["cuboids.sensor_id"]}')
+            
             if cuboid['cuboids.sensor_id'] != -1: # if -1, seem to not be in camera FOV
                 ts_cameras_mean = np.mean(ts_cameras)
                 sibling_id = cuboid['cuboids.sibling_id']
-                
+                print(f'Cuboids with sibling id: {len(cuboids_frame[cuboids_frame["uuid"] == sibling_id])}')
                 if len(cuboids_frame[cuboids_frame['uuid'] == sibling_id]) == 1:    
                     cuboids_sibling = cuboids_frame[cuboids_frame['uuid'] == sibling_id].iloc[0]
                     ts_lidar0_mean, ts_lidar0_std, ts_lidar1_mean, ts_lidar1_std = get_lidar_ts_points_in_box(cuboid, lidar[frame_id])
@@ -340,9 +351,15 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
 
                     
                     if np.abs(ts_lidar_mean[cuboid['cuboids.sensor_id']]-ts_cameras_mean)>np.abs(ts_lidar_mean_sibling[1-cuboid['cuboids.sensor_id']]-ts_cameras_mean):
+                        print(f'Keep sibling id: {sibling_id}')
+                        print(f'ID to remove: {cuboid["uuid"]}')
                         continue # sibling cuboid TS s closer to camera TS, so forget this one
- 
+                    elif np.abs(ts_lidar_mean[cuboid['cuboids.sensor_id']]-ts_cameras_mean)==np.abs(ts_lidar_mean_sibling[1-cuboid['cuboids.sensor_id']]-ts_cameras_mean):
+                        print(f'Same TS difference, wow, amazing!')
+                        exit()
                 
+
+
             if not int(id) in objects_meta_kitti:
                 # object and sibling object don't have extacly the same dimension, we will only one object and merge the 2 uuid in "kitti like id"
                 length, width, height = object_ID.get_dimension(cuboid['uuid'])
@@ -356,9 +373,22 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             tr_array = np.concatenate(
                 [np.array([frame_id, id]).astype(np.float64), np.array([type]), np.array([x,y,z,yaw, length, height, width]).astype(np.float64)]
             )
-            tracklets_ls.append(tr_array)
-            cuboid_keeped.append(cuboid)
-            nb_obj += 1
+
+            if id not in frame_added or frame_added[id][0] < frame_id:
+                tracklets_ls.append(tr_array)
+                cuboid_keeped.append(cuboid)
+                frame_added[id] = (frame_id, len(tracklets_ls) - 1)
+                nb_obj += 1
+            else:
+                print(f'Object {id} already added in frame {frame_added[id]}, using sensor id 0')
+                if cuboid['cuboids.sensor_id'] == 0:
+                    # Replace the previous tracklet with the new one
+                    tracklets_ls[frame_added[id][1]] = tr_array
+                    cuboid_keeped[frame_added[id][1]] = cuboid
+
+        if nb_obj == 0:
+            print(f'No object in frame {frame_id}')
+            # exit()
         n_obj_in_frame[frame_id - start_frame] = nb_obj
 
         
@@ -827,6 +857,15 @@ class MarsPandasetParser(DataParser):
 
 
     def _generate_dataparser_outputs(self, split="train"):
+
+        regenerate_dataparser_outputs = False
+        if self.saved_dataparser_outputs_exists(split) and not regenerate_dataparser_outputs:
+            dataparser_outputs = self.load_dataparser_outputs(split)
+            self.config.max_input_objects = dataparser_outputs.metadata['max_input_objects']
+            self.config.add_input_rows = dataparser_outputs.metadata['add_input_rows']
+
+            return dataparser_outputs
+
         visible_objects_ls = []
         objects_meta_ls = []
         semantic_meta = []
@@ -1311,6 +1350,8 @@ class MarsPandasetParser(DataParser):
                 "scene_obj": scene_objects if len(scene_objects) > 0 else None,
                 "obj_info": obj_info if len(obj_info) > 0 else None,
                 "scale_factor": self.scale_factor,
+                "max_input_objects": self.max_input_objects,
+                "add_input_rows": add_input_rows,
             #     "semantics": semantic_meta,
             },
         )
@@ -1324,7 +1365,37 @@ class MarsPandasetParser(DataParser):
             )
 
         print("finished data parsing")
+
+        self.save_dataparser_outputs(dataparser_outputs, split)
+
         return dataparser_outputs
+    
+
+    def save_dataparser_outputs(self, dataparser_outputs: DataparserOutputs, split: str):
+        """save the dataparser outputs to a file"""
+        
+        used_cameras_str = ''.join([str(camera_names.index(camera_name)) for camera_name in self.cameras_name_list])
+
+        save_path = self.config.data / self.seq_name / f'dataparser_outputs_{self.seq_name}_cams_{used_cameras_str}_{split}.pt'
+
+        torch.save(dataparser_outputs, save_path)
+
+
+    def load_dataparser_outputs(self, split: str):
+        """load the dataparser outputs from a file"""
+        used_cameras_str = ''.join([str(camera_names.index(camera_name)) for camera_name in self.cameras_name_list])
+
+        load_path = self.config.data / self.seq_name / f'dataparser_outputs_{self.seq_name}_cams_{used_cameras_str}_{split}.pt'
+
+        return torch.load(load_path)
+    
+    def saved_dataparser_outputs_exists(self, split: str):
+        """check if the saved output exists"""
+        used_cameras_str = ''.join([str(camera_names.index(camera_name)) for camera_name in self.cameras_name_list])
+
+        load_path = self.config.data / self.seq_name / f'dataparser_outputs_{self.seq_name}_cams_{used_cameras_str}_{split}.pt'
+
+        return load_path.exists()
 
 
 PandasetParserSpec = DataParserSpecification(config=MarsPandasetDataParserConfig())
