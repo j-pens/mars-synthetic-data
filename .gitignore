@@ -198,3 +198,6 @@ tsinghua-data
 checkpoints/
 pretrain/
 dependencies/
+
+# PyTorch
+*.pt
