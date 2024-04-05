@@ -69,7 +69,11 @@ def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[
         obj_index_mask = batch_objects_dyn[..., 4] == obj_index
         # print(f'obj_index_mask: {obj_index_mask.shape}')
 
-        indices = torch.nonzero(obj_index_mask, as_tuple=True)[0]
+        indices_tensor = torch.nonzero(obj_index_mask, as_tuple=True)
+
+        indices = indices_tensor[0]
+
+        # print(f'Indices: {indices}')
 
         batch_object_obj_idx = batch_objects_dyn[obj_index_mask, :]
         # print(f'batch_object_obj_idx: {batch_object_obj_idx.shape}')
@@ -137,7 +141,7 @@ def get_min_camera_distance(tracklet: BoundingBoxTracklet, cam2worlds: torch.Ten
 
     camera_positions = torch.stack((camera_xs, camera_ys, camera_zs), dim=1)
 
-    distances = torch.norm(points - camera_positions[tracklet.original_indices], dim=1)
+    distances = torch.linalg.vector_norm(points - camera_positions[tracklet.original_indices], dim=1, ord=2)
 
     min_distance = torch.min(distances)
 
@@ -173,11 +177,11 @@ def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, nois
 
         x, y = make_observations_on_tracklet(tracklet=tracklet, n=100, add_noise=add_noise, noise_level=noise_level)
 
-        # print(y.shape)
+        print(y.shape)
 
         y = y.squeeze(-1)
 
-        # print(x.shape)
+        print(x.shape)
 
         prediction = grid_3d(x).squeeze()
 
@@ -317,7 +321,7 @@ def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2)
 
     # print(point.shape)
 
-    return sample_idx/(len(tracklet.x)-1), point 
+    return sample_idx/(len(tracklet.x)), point 
 
 
 def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5, max_distance=25):

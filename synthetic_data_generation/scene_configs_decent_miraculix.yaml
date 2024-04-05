@@ -104,6 +104,105 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-11_220043/config.yml
   scene_name: '021'
+'023':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-19_191959/config.yml
+  scene_name: '023'
+'027':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-21_164506/config.yml
+  scene_name: '027'
+'033':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-29_215034/config.yml
+  scene_name: '033'
+'035':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-30_221631/config.yml
+  scene_name: '035'
+'037':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-31_124043/config.yml
+  scene_name: '037'
+039:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-02_191130/config.yml
+  scene_name: 039
+'103':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-02_184647/config.yml
+  scene_name: '103'
+'105':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-30_221653/config.yml
+  scene_name: '105'
+'109':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-29_215102/config.yml
+  scene_name: '109'
+'113':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-27_194903/config.yml
+  scene_name: '113'
+'117':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-19_192547/config.yml
+  scene_name: '117'
 '119':
 - !SceneConfig
   cameras:

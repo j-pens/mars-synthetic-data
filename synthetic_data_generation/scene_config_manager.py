@@ -1,11 +1,9 @@
-from operator import is_
-from venv import create
-from networkx import is_negatively_weighted
 import yaml
 import os
 import tyro
 from typing import Literal, Tuple, Union, List
 from dataclasses import dataclass, field
+import random
 
 @dataclass
 class SceneConfig(yaml.YAMLObject):
@@ -115,9 +113,14 @@ class SceneConfigManager():
         match_fn = all if match_all else any
         for v in self.config_storage.values():
             for scene_config in v:
-                if match_fn(getattr(scene_config, k, None) == v for k, v in kwargs.items()) and str(scene_config.scene_name) not in exclude_scenes:
+                if match_fn((any(getattr(scene_config, k, None) == item for item in v) if isinstance(v, list) else getattr(scene_config, k, None) == v) for k, v in kwargs.items()) and str(scene_config.scene_name) not in exclude_scenes:
                     scene_configs.append(scene_config)
         return scene_configs
+
+
+    def get_scene_configs_sampled(self, n_samples: int, **kwargs) -> List[SceneConfig]:
+        scene_configs = self.get_scene_configs_filtered(**kwargs)
+        return random.sample(scene_configs, n_samples)
 
 
     def save_config_storage(self):
