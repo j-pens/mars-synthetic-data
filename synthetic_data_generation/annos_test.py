@@ -85,6 +85,8 @@ def create_synthetic_annotations(pipeline: Pipeline):
     cameras_pandaset = synthetic_pandaset_annotation_generator.create_camera_poses(cameras=cameras)
     
     poses = cameras_pandaset['poses']
+
+    print(f'cameras_pandaset poses: {cameras_pandaset["poses"][0]}')
     intrinsics = dict(fx=cameras_pandaset['fx'], fy=cameras_pandaset['fy'], cx=cameras_pandaset['cx'], cy=cameras_pandaset['cy'])
     sequence_saver.save_camera_info(camera_name='front_camera', poses=poses, intrinsics=intrinsics)
 

@@ -297,7 +297,7 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
     frame_added = {}
 
     for frame_id in range(start_frame, end_frame + 1):
-        cuboid_keeped = []
+        # cuboid_keeped = []
         cuboids_frame = cuboids[frame_id]
         nb_obj = 0
         for idx_cuboid in range(len(cuboids_frame)):
@@ -334,14 +334,14 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             # in this case, the cuboid has sibling_id field which will contain the cuboid uuid in the other lidar.
             # to avoid object dupplication (latents), we will keep only one the these 2 cuboids, the one has the closest ts to camera images TS mean
             
-            print(f'ID: {cuboid["uuid"]}')
-            print(f'ID sibling: {cuboid["cuboids.sibling_id"]}')
-            print(f'Sensor id: {cuboid["cuboids.sensor_id"]}')
+            # print(f'ID: {cuboid["uuid"]}')
+            # print(f'ID sibling: {cuboid["cuboids.sibling_id"]}')
+            # print(f'Sensor id: {cuboid["cuboids.sensor_id"]}')
             
             if cuboid['cuboids.sensor_id'] != -1: # if -1, seem to not be in camera FOV
                 ts_cameras_mean = np.mean(ts_cameras)
                 sibling_id = cuboid['cuboids.sibling_id']
-                print(f'Cuboids with sibling id: {len(cuboids_frame[cuboids_frame["uuid"] == sibling_id])}')
+                # print(f'Cuboids with sibling id: {len(cuboids_frame[cuboids_frame["uuid"] == sibling_id])}')
                 if len(cuboids_frame[cuboids_frame['uuid'] == sibling_id]) == 1:    
                     cuboids_sibling = cuboids_frame[cuboids_frame['uuid'] == sibling_id].iloc[0]
                     ts_lidar0_mean, ts_lidar0_std, ts_lidar1_mean, ts_lidar1_std = get_lidar_ts_points_in_box(cuboid, lidar[frame_id])
@@ -351,8 +351,8 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
 
                     
                     if np.abs(ts_lidar_mean[cuboid['cuboids.sensor_id']]-ts_cameras_mean)>np.abs(ts_lidar_mean_sibling[1-cuboid['cuboids.sensor_id']]-ts_cameras_mean):
-                        print(f'Keep sibling id: {sibling_id}')
-                        print(f'ID to remove: {cuboid["uuid"]}')
+                        # print(f'Keep sibling id: {sibling_id}')
+                        # print(f'ID to remove: {cuboid["uuid"]}')
                         continue # sibling cuboid TS s closer to camera TS, so forget this one
                     elif np.abs(ts_lidar_mean[cuboid['cuboids.sensor_id']]-ts_cameras_mean)==np.abs(ts_lidar_mean_sibling[1-cuboid['cuboids.sensor_id']]-ts_cameras_mean):
                         print(f'Same TS difference, wow, amazing!')
@@ -376,18 +376,20 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
 
             if id not in frame_added or frame_added[id][0] < frame_id:
                 tracklets_ls.append(tr_array)
-                cuboid_keeped.append(cuboid)
+                # cuboid_keeped.append(cuboid)
                 frame_added[id] = (frame_id, len(tracklets_ls) - 1)
                 nb_obj += 1
             else:
-                print(f'Object {id} already added in frame {frame_added[id]}, using sensor id 0')
+                # print(f'Object {id} already added in frame {frame_added[id]}, using sensor id 0')
+                # print(f'Length of cuboid keeped: {len(cuboid_keeped)}')
+                # print(f'Length of tracklets_ls: {len(tracklets_ls)}')
                 if cuboid['cuboids.sensor_id'] == 0:
                     # Replace the previous tracklet with the new one
                     tracklets_ls[frame_added[id][1]] = tr_array
-                    cuboid_keeped[frame_added[id][1]] = cuboid
+                    # cuboid_keeped[frame_added[id][1]] = cuboid
 
-        if nb_obj == 0:
-            print(f'No object in frame {frame_id}')
+        # if nb_obj == 0:
+            # print(f'No object in frame {frame_id}')
             # exit()
         n_obj_in_frame[frame_id - start_frame] = nb_obj
 

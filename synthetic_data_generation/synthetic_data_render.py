@@ -121,15 +121,15 @@ def _render_trajectory_video(
     # scm.randomize_object_models_given_key_strings(obj_model_ids=obj_model_ids, obj_metadata=obj_metadata)
     # manipulate_scene_trajectories(initial_cameras, obj_metadata, obj_location_data_dyn)
 
-    tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
+    # tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
 
-    histograms = oms.get_angular_bins_tracklets(tracklets=tracklets.values(), cam2worlds=initial_cameras.camera_to_worlds, n_bins=4096)
+    # histograms = oms.get_angular_bins_tracklets(tracklets=tracklets.values(), cam2worlds=initial_cameras.camera_to_worlds, n_bins=4096)
 
-    stats = oms.get_angular_bins_stats(histograms=histograms)
+    # stats = oms.get_angular_bins_stats(histograms=histograms)
 
-    print(stats)
+    # print(stats)
 
-    histograms_by_ids = {id: torch.nonzero(histograms[i]) for i, id in enumerate(tracklets.keys())}
+    # histograms_by_ids = {id: torch.nonzero(histograms[i]) for i, id in enumerate(tracklets.keys())}
 
     # print(histograms_by_ids)
 

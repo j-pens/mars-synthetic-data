@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass
 from torch_cubic_spline_grids import CubicCatmullRomGrid1d
 from torch_cubic_spline_grids._base_cubic_grid import CubicSplineGrid
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 @dataclass(init=False)
 class BoundingBoxTracklet():
     """Bounding box class."""
@@ -45,7 +45,7 @@ class BoundingBoxTracklet():
         return f"Bounding box: object_model_id: {self.obj_model_id}, x: {self.x}, y: {self.y}, z: {self.z}, yaw: {self.yaw} dx: {self.dx}, dy: {self.dy}, dz: {self.dz}, class_id: {self.class_id}, obj_id: {self.obj_id}"
 
 
-def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[int, BoundingBoxTracklet]:
+def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> Tuple[List[int], List[BoundingBoxTracklet]]:
     """Get tracklets with object ids."""
     
     # object indice in the full metadata, including the first row
@@ -60,7 +60,8 @@ def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[
     # class ids of the objects, important for class-wise object representations
     class_ids = obj_metadata[:, 4]
 
-    tracklets = {}
+    object_model_id_list = []
+    tracklets = []
     # skip the first row as it is for non-objects
     for obj_index in range(1, obj_metadata.shape[0]):
         obj_model_id = int(obj_metadata[obj_index, 0].item())
@@ -95,9 +96,10 @@ def get_bounding_boxes_with_object_ids(batch_objects_dyn, obj_metadata) -> dict[
 
         class_id = int(class_ids[obj_index].item())
 
-        tracklets[obj_model_id] = BoundingBoxTracklet(xs, ys, zs, yaw, dxs, dys, dzs, class_id, obj_index, obj_model_id, indices)
+        tracklets.append(BoundingBoxTracklet(xs, ys, zs, yaw, dxs, dys, dzs, class_id, obj_index, obj_model_id, indices))
+        object_model_id_list.append(obj_model_id)
 
-    return tracklets
+    return object_model_id_list, tracklets
 
 
 def remove_points_object_not_visible(tracklet: BoundingBoxTracklet):
@@ -120,12 +122,15 @@ def remove_points_object_not_visible(tracklet: BoundingBoxTracklet):
     invalid_points = torch.stack((invalid_x, invalid_y, invalid_z), dim=1)
 
     # print(f'Invalid points for tracklet {tracklet.obj_model_id}: {invalid_points.shape}')
+    print(f'Removed {invalid_points.shape[0]} invalid points for tracklet {tracklet.obj_model_id}.')
 
     # TODO: Extend for other tensors in tracklet
     tracklet.x = tracklet.x[remove_invalid_points_condition]
     tracklet.y = tracklet.y[remove_invalid_points_condition]
     tracklet.z = tracklet.z[remove_invalid_points_condition]
     tracklet.yaw = tracklet.yaw[remove_invalid_points_condition]
+
+    print(f'x = y: {torch.sum(tracklet.x == tracklet.y)}')
 
 
 def get_min_camera_distance(tracklet: BoundingBoxTracklet, cam2worlds: torch.Tensor):
@@ -164,6 +169,25 @@ def sample_with_jitter(n, lower=0, upper=1.0, jitter=0.25):
     return samples
 
 
+def sample_with_jitter_from_indices(indices, jitter=0):
+    '''Sample len(indices) points from len(indices) bins around the indices with jitter in percent of the bin width with bin width < min distance between indice.'''
+    n = indices.shape[0]
+    min_index_distance = torch.min(torch.diff(indices))
+    bin_width = min_index_distance / 80
+
+    bin_centers = indices / 80
+
+    # Add jitter to bin centers
+    jitters = (torch.rand(n) - 0.5) * bin_width * jitter
+    samples = bin_centers + jitters
+
+    # Ensure samples are within bounds
+    samples = torch.clamp(samples, 0, 1)
+
+    new_indices = torch.floor(samples * 80).int()
+
+    return new_indices, samples
+
 
 def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10) -> Union[Tuple[CubicSplineGrid, torch.optim.Optimizer], CubicSplineGrid]:
     
@@ -177,11 +201,49 @@ def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, nois
 
         x, y = make_observations_on_tracklet(tracklet=tracklet, n=100, add_noise=add_noise, noise_level=noise_level)
 
-        print(y.shape)
+        # print(y.shape)
 
         y = y.squeeze(-1)
 
-        print(x.shape)
+        # print(x.shape)
+
+        prediction = grid_3d(x).squeeze()
+
+        # print(prediction.shape)
+
+        optimiser.zero_grad()
+        loss = torch.sum((prediction - y)**2)**0.5
+
+        # print(loss)
+
+        loss.backward()
+        optimiser.step()
+        if print_loss and i % 100 == 0:
+            print(loss.item())
+
+    if with_optimizer:
+        return grid_3d, optimiser
+    else:
+        return grid_3d
+    
+
+def get_parametrization_2d(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10) -> Union[Tuple[CubicSplineGrid, torch.optim.Optimizer], CubicSplineGrid]:
+    
+    # Limit to N_CONTROL_POINTS, or half of the tracklet length, whichever is smaller, but at least 2
+    resolution = max(min(resolution, tracklet.x.shape[0]//7), 2)
+
+    grid_3d = spline_grid_class(resolution=resolution, n_channels=2)
+    optimiser = torch.optim.Adam(grid_3d.parameters(), lr=0.05)
+
+    for i in range(optimization_steps):
+
+        x, y = make_observations_on_tracklet_2d(tracklet=tracklet, n=100, add_noise=add_noise, noise_level=noise_level)
+
+        # print(y.shape)
+
+        y = y.squeeze(-1)
+
+        # print(x.shape)
 
         prediction = grid_3d(x).squeeze()
 
@@ -308,6 +370,8 @@ def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2)
 
     sample_idx = torch.randint(low=0, high=len(tracklet.x), size=(n, 1))
 
+    original_indices = tracklet.original_indices[sample_idx]
+
     x = tracklet.x[sample_idx]
     y = tracklet.y[sample_idx]
     z = tracklet.z[sample_idx]
@@ -321,18 +385,44 @@ def make_observations_on_tracklet(tracklet, n, add_noise=False, noise_level=0.2)
 
     # print(point.shape)
 
-    return sample_idx/(len(tracklet.x)), point 
+    return original_indices/80, point 
 
 
-def get_closest_object_model_ids(bounding_box_tracklets, cam2worlds, n_closest_objects=5, max_distance=25):
+def make_observations_on_tracklet_2d(tracklet, n, add_noise=False, noise_level=0.2):
+
+    sample_idx = torch.randint(low=0, high=len(tracklet.x), size=(n, 1))
+
+    original_indices = tracklet.original_indices[sample_idx]
+
+    x = tracklet.x[sample_idx]
+    y = tracklet.y[sample_idx]
+    z = tracklet.z[sample_idx]
+
+    if add_noise:
+        x += noise_level * torch.randn_like(x)
+        y += noise_level * torch.randn_like(y)
+    
+    # should be the right order, l, w, h -> x,z,y
+    point = torch.stack((x, y), dim=1)
+
+    # print(point.shape)
+
+    return original_indices/80, point 
+
+
+def get_closest_object_model_ids(tracklets, ids: list[int], cam2worlds, n_closest_objects=5, max_distance=25):
     """Get the n_closest_objects object models based on the minimum distance to the camera at any point in the sequence."""
 
-    bounding_box_tracklet_keys = list(bounding_box_tracklets.keys())
+    min_distances = [(id, tracklets[i], get_min_camera_distance(tracklets[i], cam2worlds=cam2worlds)) for i, id in enumerate(ids)]
 
-    min_distances = [get_min_camera_distance(bounding_box_tracklets[key], cam2worlds=cam2worlds) for key in bounding_box_tracklet_keys]
+    key_tracklet_dists = [(id, tracklet, dist) for id, tracklet, dist in min_distances if dist < max_distance]
 
-    keys_to_dists = {key: min_distances[i] for i, key in enumerate(bounding_box_tracklet_keys) if min_distances[i] < max_distance}
+    sorted_keys_asc_dist = sorted(key_tracklet_dists, key=lambda x: x[2])
 
-    sorted_keys_asc_dist = sorted(list(keys_to_dists.keys()), key=lambda x: keys_to_dists[x])
+    n_closest_key_tracklet_dists = sorted_keys_asc_dist[:n_closest_objects]
 
-    return sorted_keys_asc_dist[:n_closest_objects]
+    out_keys = [key for key, _, _ in n_closest_key_tracklet_dists]
+    out_tracklets = [tracklet for _, tracklet, _ in n_closest_key_tracklet_dists]
+    
+
+    return out_keys, out_tracklets

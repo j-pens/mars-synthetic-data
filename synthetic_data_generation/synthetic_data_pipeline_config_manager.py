@@ -73,7 +73,16 @@ class SyntheticDataPipelineConfig(yaml.YAMLObject):
     '''Jitter for the camera positions.'''
 
     select_object_model_weights: List[int] = field(default_factory=lambda: [80, 15, 5])
-    '''Weights for the object model selection. Length must be equal to n_best_object_models.'''
+    '''Weights for the object model selection. Number of non-zero weights determines the n best object models that are considered for selection.'''
+
+    percentage_models_other_scene: float = 0.1
+    '''Percentage of object models in a scene that get replaced by object models from other scenes.'''
+
+    generate_synthetic_trajectories: bool = True
+    '''Whether to generate synthetic trajectories.'''
+
+    swap_object_models_within_scene: bool = False
+    '''Whether to swap object models within a scene.'''
 
     seed: int = int.from_bytes(os.urandom(4), 'big')
     '''Seed for the random number generator.'''

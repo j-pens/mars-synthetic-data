@@ -24,21 +24,18 @@ class PandaSetDataSetSaver():
 
 class PandaSetSequenceSaver():
 
-    _lidar: ps.sequence.Lidar = None
-    _camera: Dict[str, ps.sequence.Camera] = {}
-    _gps: ps.sequence.GPS = None
-    _timestamps: ps.sequence.Timestamps = None
-    _cuboids: ps.sequence.Cuboids = None
-    _semseg: ps.sequence.SemanticSegmentation = None
-
-    _save_state: Dict[str, int]
-
     # by default leave out lidar
     def __init__(self, dataset_root_path: str, sequence_name, types_of_data=['meta', 'camera', 'annotations/cuboids', 'lidar']):
         self.root_path = os.path.join(dataset_root_path, sequence_name)
         self.sequence_name = sequence_name
         self._data_paths = self.init_sequence_dirs(types_of_data=types_of_data)
-        self._save_state = {type_of_data: 0 for type_of_data in types_of_data}
+        self._save_state: Dict[str, int] = {type_of_data: 0 for type_of_data in types_of_data}
+        self._lidar: ps.sequence.Lidar = None
+        self._camera: Dict[str, ps.sequence.Camera] = {}
+        self._gps: ps.sequence.GPS = None
+        self._timestamps: ps.sequence.Timestamps = None
+        self._cuboids: ps.sequence.Cuboids = None
+        self._semseg: ps.sequence.SemanticSegmentation = None
 
     def init_sequence_dirs(self, types_of_data=['meta', 'camera', 'annotations/cuboids', 'lidar']):
         data_paths = {type_of_data: os.path.join(self.root_path, type_of_data) for type_of_data in types_of_data}
@@ -104,6 +101,7 @@ class PandaSetSequenceSaver():
 
     def save_camera_info(self, camera_name, poses: list[dict], intrinsics: dict):
         dir_path = os.path.join(self.get_data_path('camera'), camera_name)
+        print(self._camera)
         if not camera_name in self._camera:
             os.makedirs(dir_path, exist_ok=True)
 

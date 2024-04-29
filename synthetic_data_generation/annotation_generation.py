@@ -77,7 +77,7 @@ class SyntheticPandaSetAnnotationGenerator:
                 if original_index_int not in tracklets_by_frames:
                     tracklets_by_frames[original_index_int] = []
 
-                tracklets_by_frames[original_index_int].append([uuid, label, yaw[i].item(), stationary, camera_used, x[i].item(), y[i].item(), z[i].item() - dz/2, dx, dy, dz, object_motion])
+                tracklets_by_frames[original_index_int].append([uuid, label, yaw[i].item(), stationary, camera_used, x[i].item(), y[i].item(), z[i].item() + dy/2, dx, dz, dy, object_motion])
 
         print(tracklets_by_frames)
         dynamic_cuboids_dict_of_dfs = {}
@@ -131,7 +131,7 @@ class SyntheticPandaSetAnnotationGenerator:
 
         camera_orientations = camera_to_worlds[:, :, :3]
 
-        camera_positions = camera_to_worlds[:, :, 3]
+        camera_positions = camera_to_worlds[:, :, 3] * 100
 
         print(camera_orientations.shape)
         print(camera_positions.shape)

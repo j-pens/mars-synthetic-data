@@ -1,4 +1,3 @@
-import re
 from nerfstudio.cameras.cameras import Cameras
 from object_trajectory_generation import BoundingBoxTracklet
 import object_trajectory_generation as otg
@@ -12,6 +11,7 @@ from torch_cubic_spline_grids import CubicCatmullRomGrid1d
 
 import torch
 
+import random
 
 def manipulate_scene_trajectories(cameras: Cameras, obj_metadata, obj_location_data):
     """Manipulate scene trajectories."""
@@ -137,18 +137,21 @@ def get_indices_from_object_model_ids(obj_metadata, object_model_ids):
 
 def create_synthetic_trajectories(tracklets: list[BoundingBoxTracklet], config: sdpcm.SyntheticDataPipelineConfig, n_samples=79):
 
-    parametrizations = [otg.get_parametrization(tracklet, optimization_steps=config.spline_optimization_steps, add_noise=config.spline_add_noise_to_observations, noise_level=config.spline_max_noise,
+    parametrizations = [otg.get_parametrization_2d(tracklet, optimization_steps=config.spline_optimization_steps, add_noise=config.spline_add_noise_to_observations, noise_level=config.spline_max_noise,
                                                 spline_grid_class=CubicCatmullRomGrid1d, print_loss=config.print_spline_loss, with_optimizer=config.return_spline_optimizer) for tracklet in tracklets]
+    
+    new_indices_samples = [otg.sample_with_jitter_from_indices(tracklet.original_indices, jitter=0) for tracklet in tracklets]
 
-    samples = [otg.sample_with_jitter(
-        n_samples, lower=0, upper=1.0, jitter=0.25) for tracklet in tracklets]
-
-    results = [parametrization(sample.unsqueeze(1)).squeeze().detach(
-    ) for sample, parametrization in zip(samples, parametrizations)]
+    results = [parametrization(index_sample[1].unsqueeze(1)).squeeze().detach(
+    ) for index_sample, parametrization in zip(new_indices_samples, parametrizations)]
 
     yaws = [otg.calculate_yaw(result) for result in results]
 
-    return results, yaws
+    indices = [index_sample[0] for index_sample in new_indices_samples]
+
+    results_original_height = [torch.cat((result, tracklet.z.unsqueeze(-1)), dim=1) for result, tracklet in zip(results, tracklets)]
+
+    return indices, results_original_height, yaws
 
 
 def write_to_obj_location_data(obj_location_data, positions, yaws):
@@ -166,15 +169,28 @@ def write_to_obj_location_data(obj_location_data, positions, yaws):
         batch_objects_dyn_row[..., 3] = yaws[i]
 
 
-def create_obj_location_data(positions, yaws):
+def create_obj_location_data(indice, positions, yaws):
     """Create the obj_location_data tensor from the positions and yaws."""
 
     assert len(positions) == len(yaws)
 
+    print(indice)
+
     n_objects = len(positions)
 
-    positions_tensor = torch.stack(positions, dim=1)
-    yaws_tensor = torch.stack(yaws, dim=1)
+    padded_positions = []
+    padded_yaws = []
+    for idx, position, yaw in zip(indice, positions, yaws):
+        padded_position_tensor = -torch.ones((79, position.shape[-1]))
+        padded_position_tensor[idx] = position
+        padded_positions.append(padded_position_tensor)
+
+        padded_yaw_tensor = -torch.ones((79,))
+        padded_yaw_tensor[idx] = yaw
+        padded_yaws.append(padded_yaw_tensor)
+
+    positions_tensor = torch.stack(padded_positions, dim=1)
+    yaws_tensor = torch.stack(padded_yaws, dim=1)
 
     print(f'Positions: {positions_tensor.shape}')
     print(f'Yaws: {yaws_tensor.shape}')
@@ -186,7 +202,10 @@ def create_obj_location_data(positions, yaws):
     obj_location_data[..., 3] = yaws_tensor
 
     # TODO: Is this correct? How does the position in the tracklets/ position translate to the obj metadata/ the object?
-    obj_location_data[..., 4] = torch.arange(n_objects)
+    obj_location_data[..., 4] = torch.zeros((positions_tensor.shape[0], n_objects))
+
+    for i in range(n_objects):
+        obj_location_data[indice[i], i, 4] = i + 1
 
     obj_location_data = obj_location_data.reshape(
         obj_location_data.shape[0], 1, 1, n_objects*2, 3)
@@ -204,3 +223,67 @@ def get_object_models_from_other_scenes(config_path):
         scene_config_manager, config_path)
 
     return object_model_ids_from_other_scenes
+
+
+
+def get_best_object_models_for_tracklets(pipeline, angular_embeddings_tracklets, models_from_other_scenes: list[oms.ObjectModelsIDsFromOtherScene], select_object_model_weights: list[int]):
+    '''Get the best object models for given tracklets.'''
+
+    index_to_scene_name = {}
+    # angular_bins_from_other_scenes = []
+    angular_embeddings_from_other_scenes = []
+    for models_from_other_scene in models_from_other_scenes:
+        initial_len = len(angular_embeddings_from_other_scenes)
+        angular_embedding_tracklets_from_other_scene = oms.get_angular_embeddings_tracklets(tracklets=models_from_other_scene.bounding_box_tracklets, cam2worlds=models_from_other_scene.cam2worlds)
+        angular_embeddings_from_other_scenes.extend(angular_embedding_tracklets_from_other_scene)
+        len_after_adding = len(angular_embeddings_from_other_scenes)
+        index_to_scene_name.update({i: (models_from_other_scene, i - initial_len) for i in range(initial_len, len_after_adding)})
+
+    
+    # diff_matrix = oms.get_histogram_difference(angular_bins_tracklets, angular_bins_from_other_scenes)
+    diff_matrix = oms.get_mean_diff_matrix(angular_embeddings_tracklets, angular_embeddings_from_other_scenes)
+
+    # Get best fitting object models for each object in the scene
+    # Then add them to the scene graph
+    scene_graph = pipeline.model
+    
+    object_dimensions_list = []
+    object_model_keys_with_scene = []
+    for diffs_per_trajectory in diff_matrix:
+        sorted_indice = diffs_per_trajectory.argsort()
+
+        # Sample models via index here
+        # Bias sampling with decreasing probability for higher differences/ higher indices of indices
+        # Get object model id and scene based on selected indice
+        # Adjust to sample with decreasing probability for higher indices
+
+        n_best_indice = sorted_indice[:len(select_object_model_weights)]
+        n_indice = len(n_best_indice)
+        possible_indices = [i for i in range(n_indice)]
+        weights = select_object_model_weights[:n_indice]
+        selected_index_position = random.choices(possible_indices, weights=weights, k=1)[0]
+        selected_index = sorted_indice[selected_index_position].item()
+
+        selected_scene_model_object, selected_model_index_in_scene = index_to_scene_name[selected_index]
+
+        scene_name = selected_scene_model_object.scene_name
+        scene_checkpoint = selected_scene_model_object.scene_checkpoint
+        object_model_key = selected_scene_model_object.object_model_ids[selected_model_index_in_scene]
+        object_dimensions = selected_scene_model_object.object_metadata[selected_model_index_in_scene][1:4]
+
+        object_dimensions_list.append(object_dimensions)
+        # print(f'object dimensions: {object_dimensions}')
+
+        object_model_key_with_scene = oms.add_object_model_to_scene_graph(scene_graph=scene_graph, import_scene_name=scene_name, import_scene_checkpoint=scene_checkpoint, object_model_key=object_model_key)
+        object_model_keys_with_scene.append(object_model_key_with_scene)
+
+    obj_key_tensor = torch.tensor(object_model_keys_with_scene)
+    obj_dimensions_tensor = torch.stack(object_dimensions_list)
+
+    # Stack tensor and return
+    print(f'obj_key_tensor: {obj_key_tensor.shape}')
+    print(f'obj_dimensions_tensor: {obj_dimensions_tensor.shape}')
+
+    obj_metadata_tensor = torch.cat((obj_key_tensor.unsqueeze(-1), obj_dimensions_tensor), dim=1)
+
+    return obj_metadata_tensor

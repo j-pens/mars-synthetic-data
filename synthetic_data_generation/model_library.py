@@ -107,7 +107,7 @@ class MarsPipelineCheckpoint:
     def get_object_model_state(self, object_model_id):
         """Get state for single object model."""
         object_model_keys = self.get_object_model_keys(object_model_id)
-        print(object_model_keys)
+        # print(object_model_keys)
         single_object_model_state = {'.'.join(k.split('.')[3:]): v for k, v in self.state['pipeline'].items() if k in object_model_keys}
         return single_object_model_state
 

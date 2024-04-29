@@ -10,7 +10,7 @@ import random
 import numpy as np
 import synthetic_data_pipeline_config_manager as sdpcm
 
-ObjectModelsIDsFromOtherScene = namedtuple('ObjectModelsIDsFromOtherScene', ['scene_name', 'scene_checkpoint', 'object_model_ids', 'bounding_box_tracklets', 'cam2worlds'])
+ObjectModelsIDsFromOtherScene = namedtuple('ObjectModelsIDsFromOtherScene', ['scene_name', 'scene_checkpoint', 'object_model_ids', 'bounding_box_tracklets', 'object_metadata', 'cam2worlds'])
 
 def add_object_model_to_scene_graph(scene_graph, import_scene_name: str, import_scene_checkpoint: MarsPipelineCheckpoint, object_model_key: str):
     """Add object model to scene."""
@@ -101,24 +101,28 @@ def get_object_models_from_other_scenes(scene_config_manager: SceneConfigManager
         print(f'obj_metadata shape: {obj_metadata.shape}')
 
         # Check distances and filter object models similar to scene_manipulation script
-        bounding_box_tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
+        object_model_id_list, bounding_box_tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
 
-        print(bounding_box_tracklets.keys())
+        # for tracklet in bounding_box_tracklets:
+        #     otg.remove_points_object_not_visible(tracklet=tracklet)
 
-        bounding_box_tracklets = {key: bounding_box_tracklets[key] for key in bounding_box_tracklets.keys() if bounding_box_tracklets[key].original_indices.shape[0] > synthetic_data_pipeline_config.n_frames_min_objects}
+        bounding_box_tracklets_min_frames = [bounding_box_tracklet for bounding_box_tracklet in bounding_box_tracklets if bounding_box_tracklet.original_indices.shape[0] > synthetic_data_pipeline_config.n_frames_min_objects]
 
+        object_model_id_list = [bounding_box_tracklet.obj_model_id for bounding_box_tracklet in bounding_box_tracklets_min_frames]
         # angular_bins_tracklets = get_angular_bins_tracklets(tracklets=bounding_box_tracklets.values(), cam2worlds=scene_cameras.camera_to_worlds, n_bins=32)
 
+        print(f'Removed {len(bounding_box_tracklets) - len(bounding_box_tracklets_min_frames)} bounding box tracklets with less than {synthetic_data_pipeline_config.n_frames_min_objects} frames')
+        print(f'Remaining {len(bounding_box_tracklets_min_frames)} bounding box tracklets')
         # print([tracklet.original_indices.shape for tracklet in bounding_box_tracklets.values()])
         # print(angular_bins_tracklets)
     
-        closest_model_ids = otg.get_closest_object_model_ids(bounding_box_tracklets=bounding_box_tracklets, cam2worlds=scene_cameras.camera_to_worlds, n_closest_objects=synthetic_data_pipeline_config.n_closest_objects)
+        closest_model_ids, filtered_bounding_box_tracklets = otg.get_closest_object_model_ids(tracklets=bounding_box_tracklets_min_frames, ids=object_model_id_list, cam2worlds=scene_cameras.camera_to_worlds, n_closest_objects=synthetic_data_pipeline_config.n_closest_objects)
 
         print(config.scene_name)
 
-        filtered_bounding_box_tracklets = [bounding_box_tracklets[key] for key in closest_model_ids]
+        filtered_object_metadata = [obj_metadata[tracklet.obj_id, :] for tracklet in filtered_bounding_box_tracklets]
 
-        object_models_ids_from_other_scenes.append(ObjectModelsIDsFromOtherScene(scene_name=config.scene_name, object_model_ids=closest_model_ids, scene_checkpoint=checkpoint, bounding_box_tracklets=filtered_bounding_box_tracklets, cam2worlds=scene_cameras.camera_to_worlds))
+        object_models_ids_from_other_scenes.append(ObjectModelsIDsFromOtherScene(scene_name=config.scene_name, object_model_ids=closest_model_ids, scene_checkpoint=checkpoint, bounding_box_tracklets=filtered_bounding_box_tracklets, object_metadata=filtered_object_metadata, cam2worlds=scene_cameras.camera_to_worlds))
 
         # if len(object_models_ids_from_other_scenes) >= 2:
         #     break

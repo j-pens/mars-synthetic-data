@@ -126,113 +126,74 @@ class SyntheticDataRender:
             print(f'obj_metadata shape: {obj_metadata.shape}')
 
             # Get original tracklets
-            tracklets_by_ids = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
+            object_model_id_list, tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=obj_location_data_dyn, obj_metadata=obj_metadata)
             
-            # print(f'Original tracklet indices: {[tracklet.original_indices for tracklet in tracklets_by_ids.values()]}')
-            tracklets = list(tracklets_by_ids.values())
+            n_trajectories = len(tracklets)
+            n_models_from_other_scenes = int(self.config.percentage_models_other_scene * n_trajectories)
 
-            for tracklet in tracklets:
-                otg.remove_points_object_not_visible(tracklet=tracklet)
-
-            # Create synthetic object trajectories
-            positions, yaws = scm.create_synthetic_trajectories(tracklets=tracklets, config=self.config, n_samples=79)
+            if self.config.generate_synthetic_trajectories:
+                # Create synthetic object trajectories
+                indice, positions, yaws = scm.create_synthetic_trajectories(tracklets=tracklets, config=self.config, n_samples=79)
 
 
-            obj_location_data_out = scm.create_obj_location_data(positions=positions, yaws=yaws)
-            
-            print(obj_location_data_out[0].shape)
-            print(obj_location_data_out[1])
+                obj_location_data_out = scm.create_obj_location_data(indice=indice, positions=positions, yaws=yaws)
+                
+                print(obj_location_data_out[0].shape)
+                print(obj_location_data_out[1])
 
-            pipeline.datamanager.train_dataset.metadata["obj_info"] = obj_location_data_out[0]
+                pipeline.datamanager.train_dataset.metadata["obj_info"] = obj_location_data_out[0]
 
-            pipeline.model.config.max_num_obj = obj_location_data_out[1]
+                pipeline.model.config.max_num_obj = obj_location_data_out[1]
 
-            # print(f'Obj_location data shape: {obj_location_data.shape}')
+                # print(f'Obj_location data shape: {obj_location_data.shape}')
 
-            print(f'Synthetic obj_location_data shape: {pipeline.datamanager.train_dataset.metadata["obj_info"].shape}')
+                print(f'Synthetic obj_location_data shape: {pipeline.datamanager.train_dataset.metadata["obj_info"].shape}')
 
-            # Adjust max_num_obj in config to match the number of objects in the scene
-            # Write the trajectory for each object into one row of the obj_location_data tensor
-            # TODO: Consider setting obj_model_id to 0 to indicate that the object is not visible in the scenes and adjust sampling
+                # Adjust max_num_obj in config to match the number of objects in the scene
+                # Write the trajectory for each object into one row of the obj_location_data tensor
+                # TODO: Consider setting obj_model_id to 0 to indicate that the object is not visible in the scenes and adjust sampling
 
-            synthetic_obj_location_data_dyn = pipeline.datamanager.train_dataset.metadata["obj_info"].view(
-                # len(cameras),
-                obj_location_data.shape[0], # == len(cameras) for training images
-                # obj_location_data.shape[1],
-                pipeline.model.config.max_num_obj,
-                pipeline.model.config.ray_add_input_rows * 3
-            )
+                synthetic_obj_location_data_dyn = pipeline.datamanager.train_dataset.metadata["obj_info"].view(
+                    # len(cameras),
+                    obj_location_data.shape[0], # == len(cameras) for training images
+                    # obj_location_data.shape[1],
+                    pipeline.model.config.max_num_obj,
+                    pipeline.model.config.ray_add_input_rows * 3
+                )
 
-            synthetic_tracklets_by_id = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=synthetic_obj_location_data_dyn, obj_metadata=obj_metadata)
-            synthetic_tracklets = list(synthetic_tracklets_by_id.values())
+                synthetic_object_model_id_list, synthetic_tracklets = otg.get_bounding_boxes_with_object_ids(batch_objects_dyn=synthetic_obj_location_data_dyn, obj_metadata=obj_metadata)
+                tracklets = synthetic_tracklets
 
             # Save cuboids
-            dynamic_cuboids = synthetic_pandaset_annotation_generator.create_dynamic_cuboids(bounding_box_tracklets=synthetic_tracklets)
+            dynamic_cuboids = synthetic_pandaset_annotation_generator.create_dynamic_cuboids(bounding_box_tracklets=tracklets)
             merged_cuboids_list_of_dfs = synthetic_pandaset_annotation_generator.merge_static_and_dynamic_cuboids(static_cuboids=static_cuboids, dynamic_cuboids=dynamic_cuboids)
             print(f'Number of cuboids: {len(merged_cuboids_list_of_dfs)}')
             assert len(merged_cuboids_list_of_dfs) != 0
             sequence_saver.save_cuboid_info(data=merged_cuboids_list_of_dfs)
-
-            # angular_bins_tracklets = oms.get_angular_bins_tracklets(tracklets=synthetic_tracklets_by_id.values(), cam2worlds=cameras.camera_to_worlds, n_bins=4096)
-            angular_embeddings_tracklets = oms.get_angular_embeddings_tracklets(tracklets=synthetic_tracklets, cam2worlds=cameras.camera_to_worlds)
-
-            # Get objects from other scenes
-            models_from_other_scenes = oms.get_object_models_from_other_scenes(scene_config_manager=scene_conf_manager, original_scene_config_path=scene_config.scene_config_path, synthetic_data_pipeline_config=self.config)
-
-            index_to_scene_name = {}
-            # angular_bins_from_other_scenes = []
-            angular_embeddings_from_other_scenes = []
-            for models_from_other_scene in models_from_other_scenes:
-                initial_len = len(angular_embeddings_from_other_scenes)
-                angular_embedding_tracklets_from_other_scene = oms.get_angular_embeddings_tracklets(tracklets=models_from_other_scene.bounding_box_tracklets, cam2worlds=models_from_other_scene.cam2worlds)
-                angular_embeddings_from_other_scenes.extend(angular_embedding_tracklets_from_other_scene)
-                len_after_adding = len(angular_embeddings_from_other_scenes)
-                index_to_scene_name.update({i: (models_from_other_scene, i - initial_len) for i in range(initial_len, len_after_adding)})
-
             
-            # diff_matrix = oms.get_histogram_difference(angular_bins_tracklets, angular_bins_from_other_scenes)
-            diff_matrix = oms.get_mean_diff_matrix(angular_embeddings_tracklets, angular_embeddings_from_other_scenes)
+            if n_models_from_other_scenes != 0:
 
-            # Get best fitting object models for each object in the scene
-            # Then add them to the scene graph
-            scene_graph = pipeline.model
+                # Select trajectories for which object models from other scenes are selected
+                trajectory_indices = random.sample(range(n_trajectories), n_models_from_other_scenes)
+                chosen_tracklets = [tracklets[i] for i in trajectory_indices]
 
-            object_model_keys_with_scene = []
-            for diffs_per_trajectory in diff_matrix:
-                sorted_indice = diffs_per_trajectory.argsort()
+                angular_embeddings_tracklets = oms.get_angular_embeddings_tracklets(tracklets=chosen_tracklets, cam2worlds=cameras.camera_to_worlds)
 
-                # Sample models via index here
-                # Bias sampling with decreasing probability for higher differences/ higher indices of indices
-                # Get object model id and scene based on selected indice
-                # Adjust to sample with decreasing probability for higher indices
+                # Get objects from other scenes
+                models_from_other_scenes = oms.get_object_models_from_other_scenes(scene_config_manager=scene_conf_manager, original_scene_config_path=scene_config.scene_config_path, synthetic_data_pipeline_config=self.config)
 
-                select_object_model_weights = self.config.select_object_model_weights
+                object_meta_tensor = scm.get_best_object_models_for_tracklets(pipeline=pipeline, angular_embeddings_tracklets=angular_embeddings_tracklets, models_from_other_scenes=models_from_other_scenes, select_object_model_weights=self.config.select_object_model_weights)
 
-                n_best_indice = sorted_indice[:len(select_object_model_weights)]
-                n_indice = len(n_best_indice)
-                possible_indices = [i for i in range(n_indice)]
-                weights = select_object_model_weights[:n_indice]
-                selected_index_position = random.choices(possible_indices, weights=weights, k=1)[0]
-                selected_index = sorted_indice[selected_index_position].item()
-
-                selected_scene_model_object, selected_model_index_in_scene = index_to_scene_name[selected_index]
-
-                scene_name = selected_scene_model_object.scene_name
-                scene_checkpoint = selected_scene_model_object.scene_checkpoint
-                object_model_key = selected_scene_model_object.object_model_ids[selected_model_index_in_scene]
-
-                object_model_key_with_scene = oms.add_object_model_to_scene_graph(scene_graph=scene_graph, import_scene_name=scene_name, import_scene_checkpoint=scene_checkpoint, object_model_key=object_model_key)
-                object_model_keys_with_scene.append(object_model_key_with_scene)
-
-            # Write the object model keys to the metadata
-            obj_metadata[1:, 0] = torch.tensor(object_model_keys_with_scene)
+                # Write the object model keys to the metadata
+                trajectory_indices = torch.tensor(trajectory_indices) + 1 # +1 to account for row for no object
+                obj_metadata[trajectory_indices, :4] = object_meta_tensor
 
             FOV = torch.tensor(([30, 26, 22]), dtype=torch.float32)
 
             render_width = camera_trajectory.image_width[0].item()
             render_height = camera_trajectory.image_height[0].item()
             
-            CONSOLE.print(f'Rendering scene {scene_config.scene_name}!') 
+            CONSOLE.print(f'Rendering scene {scene_config.scene_name}!')
 
             # Render the scene
             image_generator = _render_trajectory_video(
