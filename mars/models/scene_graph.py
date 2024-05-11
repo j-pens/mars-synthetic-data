@@ -638,7 +638,8 @@ class SceneGraphModel(Model):
         )
         # print(f'batch_obj_rays: {batch_obj_rays.shape}')
         # n_rays * n_obj * 6: [x,y,z,yaw,obj_id, 0]
-        batch_obj_dyn = batch_obj_rays.view(N_rays, self.config.max_num_obj, self.config.ray_add_input_rows * 3)
+        # batch_obj_dyn = batch_obj_rays.view(N_rays, self.config.max_num_obj, self.config.ray_add_input_rows * 3)
+        batch_obj_dyn = batch_obj_rays.view(N_rays, -1, self.config.ray_add_input_rows * 3)
         # print(f'batch_obj_dyn: {batch_obj_dyn.shape}')
         batch_obj = batch_obj_dyn[..., :4]  # n_rays * n_obj * 4: [x,y,z,yaw]
         # print(f'batch_obj: {batch_obj.shape}')

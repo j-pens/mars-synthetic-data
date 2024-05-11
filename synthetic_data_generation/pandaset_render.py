@@ -50,7 +50,9 @@ from nerfstudio.utils.eval_utils import eval_setup
 from nerfstudio.utils.rich_utils import ItersPerSecColumn
 from nerfstudio.viewer.server.utils import three_js_perspective_camera_focal_length
 
-from nerfstudio.utils.tensor_dataclass import TensorDataclass
+import scene_config_manager
+
+
 
 CONSOLE = Console(width=120)
 
@@ -349,7 +351,12 @@ class RenderTrajectory:
     """Load a checkpoint, render a trajectory, and save to a video file."""
 
     # Path to config YAML file.
-    load_config: Path
+    # load_config: Path
+
+    scene_name: str
+
+    scene_configs_path: Path = Path('/zfs/penshorn/master_thesis/code/mars-synthetic-data/synthetic_data_generation/scene_configs_decent_miraculix.yaml')
+
     # Name of the renderer outputs to use. rgb, depth, semantics etc. concatenates them along y axis
     rendered_output_names: List[str] = field(default_factory=lambda: ["rgb", "objects_rgb", "background"])
     #  Trajectory to render.
@@ -359,7 +366,7 @@ class RenderTrajectory:
     # Filename of the camera path to render.
     camera_path_filename: Path = Path("camera_path.json")
     # Name of the output file.
-    output_path: Path = Path("renders/output.mp4")
+    output_path: Path = Path("pandaset_renders/output.mp4")
     # How long the video should be.
     seconds: float = 8
     # How to save output data.
@@ -370,8 +377,12 @@ class RenderTrajectory:
     def main(self) -> None:
         """Main function."""
 
+        scene_conf_manager = scene_config_manager.SceneConfigManager(self.scene_configs_path)
+
+        scene_config = scene_conf_manager.get_scene_configs_sampled(n_samples=1, scene_name=self.scene_name)[0]
+
         _, pipeline, _, _ = eval_setup(
-            self.load_config,
+            Path(scene_config.scene_config_path),
             eval_num_rays_per_chunk=self.eval_num_rays_per_chunk,
             test_mode="inference",
         )

@@ -189,7 +189,7 @@ def _render_trajectory_video(
                 batch_obj_dyn = camera_ray_bundle.metadata["object_rays_info"].view(
                     camera_ray_bundle.metadata["object_rays_info"].shape[0],
                     camera_ray_bundle.metadata["object_rays_info"].shape[1],
-                    pipeline.model.config.max_num_obj,
+                    -1,
                     pipeline.model.config.ray_add_input_rows * 3,
                 )
                 norm_sh = camera_ray_bundle.metadata["directions_norm"].shape

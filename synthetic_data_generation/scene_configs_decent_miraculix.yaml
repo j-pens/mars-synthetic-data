@@ -12,17 +12,9 @@
   cameras:
   - front_camera
   light_condition: day
-  method_name: mars-pandaset-car-depth-recon
+  method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-car-depth-recon/2024-02-13_152802/config.yml
-  scene_name: '002'
-- !SceneConfig
-  cameras:
-  - front_camera
-  light_condition: day
-  method_name: mars-pandaset-car-depth-recon
-  road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-car-depth-recon/2024-02-16_131741/config.yml
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-11_130007/config.yml
   scene_name: '002'
 '003':
 - !SceneConfig
@@ -33,6 +25,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-07_205604/config.yml
   scene_name: '003'
+'004':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-29_061418/config.yml
+  scene_name: '004'
 '005':
 - !SceneConfig
   cameras:
@@ -42,6 +43,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-08_203245/config.yml
   scene_name: '005'
+'006':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-29_103920/config.yml
+  scene_name: '006'
 008:
 - !SceneConfig
   cameras:
@@ -56,14 +66,6 @@
   cameras:
   - front_camera
   light_condition: day
-  method_name: mars-pandaset-car-depth-recon
-  road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-car-depth-recon/2024-02-08_102959/config.yml
-  scene_name: '011'
-- !SceneConfig
-  cameras:
-  - front_camera
-  light_condition: day
   method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-02-26_170958/config.yml
@@ -73,9 +75,9 @@
   cameras:
   - front_camera
   light_condition: day
-  method_name: mars-pandaset-car-depth-recon
+  method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-car-depth-recon/2024-02-21_081220/config.yml
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-30_161504/config.yml
   scene_name: '012'
 '013':
 - !SceneConfig
@@ -84,8 +86,71 @@
   light_condition: day
   method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-09_093447/config.yml
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-10_145733/config.yml
   scene_name: '013'
+'014':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-30_161133/config.yml
+  scene_name: '014'
+'015':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-04_220800/config.yml
+  scene_name: '015'
+'016':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-05_022112/config.yml
+  scene_name: '016'
+'017':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-02_061833/config.yml
+  scene_name: '017'
+018:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-02_160427/config.yml
+  scene_name: 018
+019:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-03_053715/config.yml
+  scene_name: 019
+'020':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-03_222421/config.yml
+  scene_name: '020'
 '021':
 - !SceneConfig
   cameras:
@@ -122,6 +187,33 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-21_164506/config.yml
   scene_name: '027'
+028:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-04_133850/config.yml
+  scene_name: 028
+029:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-29_212658/config.yml
+  scene_name: 029
+'030':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-30_011203/config.yml
+  scene_name: '030'
 '032':
 - !SceneConfig
   cameras:
@@ -221,6 +313,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-09_195136/config.yml
   scene_name: '043'
+'044':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-30_061745/config.yml
+  scene_name: '044'
 '045':
 - !SceneConfig
   cameras:
@@ -293,6 +394,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-19_191113/config.yml
   scene_name: '053'
+'054':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-04_142657/config.yml
+  scene_name: '054'
 '055':
 - !SceneConfig
   cameras:
@@ -402,14 +512,6 @@
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-26_114534/config.yml
   scene_name: 068
 069:
-- !SceneConfig
-  cameras:
-  - front_camera
-  light_condition: night
-  method_name: mars-pandaset-nerfacto-object-wise-recon
-  road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-21_142351/config.yml
-  scene_name: 069
 - !SceneConfig
   cameras:
   - front_camera
@@ -526,6 +628,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-28_130050/config.yml
   scene_name: 086
+088:
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: frontal_lighting
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-29_091709/config.yml
+  scene_name: 088
 089:
 - !SceneConfig
   cameras:
@@ -715,6 +826,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-03-27_194903/config.yml
   scene_name: '113'
+'115':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-04_162708/config.yml
+  scene_name: '115'
 '116':
 - !SceneConfig
   cameras:
@@ -760,6 +880,15 @@
   road_type: Not yet implemented.
   scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-22_101619/config.yml
   scene_name: '122'
+'123':
+- !SceneConfig
+  cameras:
+  - front_camera
+  light_condition: day
+  method_name: mars-pandaset-nerfacto-object-wise-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-05-02_020247/config.yml
+  scene_name: '123'
 '124':
 - !SceneConfig
   cameras:
@@ -767,7 +896,7 @@
   light_condition: day
   method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-15_101919_asterix/config.yml
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-15_101919/config.yml
   scene_name: '124'
 '139':
 - !SceneConfig
@@ -794,5 +923,5 @@
   light_condition: day
   method_name: mars-pandaset-nerfacto-object-wise-recon
   road_type: Not yet implemented.
-  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-11_130104_asterix/config.yml
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-nerfacto-object-wise-recon/2024-04-11_130104/config.yml
   scene_name: '158'

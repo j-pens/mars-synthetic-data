@@ -59,7 +59,8 @@ class SyntheticDataRender:
     # Specifies number of rays per chunk during eval.
     eval_num_rays_per_chunk: Optional[int] = None
 
-    def __init__(self, config: sdpcm.SyntheticDataPipelineConfig, config_directory: Path = Path('/zfs/penshorn/master_thesis/code/mars-synthetic-data/synthetic_data_generation/configs'), video: bool = False):
+    def __init__(self, config: sdpcm.SyntheticDataPipelineConfig, config_directory: Path = Path('/zfs/penshorn/master_thesis/code/mars-synthetic-data/synthetic_data_generation/configs'), video: bool = False, scene_names: List[str] = []):
+        self.scene_names = scene_names
         self.config = config
         self.video = video
         sdpcm.add_synthetic_data_pipeline_config(config_directory=config_directory, config=config)
@@ -73,6 +74,12 @@ class SyntheticDataRender:
 
         scene_configs = []
         valid_configs = False
+        if len(self.scene_names) > 0:
+            for scene_name in self.scene_names:
+                scene_config = scene_conf_manager.get_scene_configs_filtered(scene_name=scene_name)[0]
+                scene_configs.append(scene_config)
+            valid_configs = True
+
         while not valid_configs:
             scene_configs = scene_conf_manager.get_scene_configs_sampled(self.config.n_scenes, light_condition=self.config.light_conditions, method_name='mars-pandaset-nerfacto-object-wise-recon')
             scene_names = [scene_config.scene_name for scene_config in scene_configs]
@@ -115,7 +122,7 @@ class SyntheticDataRender:
                 # len(cameras),
                 obj_location_data.shape[0], # == len(cameras) for training images
                 # obj_location_data.shape[1],
-                pipeline.model.config.max_num_obj,
+                -1,
                 pipeline.model.config.ray_add_input_rows * 3
             )
             print(f'obj_location_data_dyn shape: {obj_location_data_dyn.shape}')
@@ -212,16 +219,16 @@ class SyntheticDataRender:
             for image in image_generator:
                 sequence_saver.save_image(image=image, camera_name='front_camera')
 
-def run_synthetic_data_render(config: sdpcm.SyntheticDataPipelineConfig, config_directory: Path = Path('/zfs/penshorn/master_thesis/code/mars-synthetic-data/synthetic_data_generation/configs'), video: bool = False) -> None:
+def run_synthetic_data_render(config: sdpcm.SyntheticDataPipelineConfig, config_directory: Path = Path('/zfs/penshorn/master_thesis/code/mars-synthetic-data/synthetic_data_generation/configs'), video: bool = False, scene_names: List[str] = []) -> None:
     """Run the synthetic data rendering pipeline."""
-    SyntheticDataRender(config=config, config_directory=config_directory, video=video).main()
+    SyntheticDataRender(config=config, config_directory=config_directory, video=video, scene_names=scene_names).main()
 
 
-def run_synthetic_data_render_from_config_path(config_path: Path, video: bool = False) -> None:
+def run_synthetic_data_render_from_config_path(config_path: Path, video: bool = False, scene_names: List[str] = []) -> None:
     """Run the synthetic data rendering pipeline from a config path."""
     config = sdpcm.load_synthetic_data_pipeline_config_from_path(config_path)
     config_directory = config_path.parent
-    run_synthetic_data_render(config=config, config_directory=config_directory, video=video)
+    run_synthetic_data_render(config=config, config_directory=config_directory, video=video, scene_names=scene_names)
 
 
 def entrypoint():

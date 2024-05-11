@@ -120,6 +120,7 @@ class SceneConfigManager():
 
     def get_scene_configs_sampled(self, n_samples: int, **kwargs) -> List[SceneConfig]:
         scene_configs = self.get_scene_configs_filtered(**kwargs)
+        print(len(scene_configs), n_samples)
         return random.sample(scene_configs, n_samples)
 
 

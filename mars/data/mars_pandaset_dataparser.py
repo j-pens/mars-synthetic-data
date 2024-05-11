@@ -300,6 +300,8 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
         # cuboid_keeped = []
         cuboids_frame = cuboids[frame_id]
         nb_obj = 0
+        new_label_cuboids = []
+
         for idx_cuboid in range(len(cuboids_frame)):
             cuboid = cuboids_frame.iloc[idx_cuboid]
             # il va falloir tester si le cuboid se projecte dans une camera 
@@ -314,11 +316,14 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             
             
             #print(cuboid)
-            if cuboid['label'] not in _sem2label_pandaset:
+            if cuboid['label'] not in _sem2label_pandaset and cuboid['label'] not in _new_sem2label_pandaset:
                 # TODO: Save cuboids that are in new object classes/ sem2label, like bus and add them after the existing ones
                 continue
             
-            type = _sem2label_pandaset[cuboid['label']]
+            if cuboid['label'] in _sem2label_pandaset:
+                type = _sem2label_pandaset[cuboid['label']]
+            elif cuboid['label'] in _new_sem2label_pandaset:
+                type = _new_sem2label_pandaset[cuboid['label']]
             id = object_ID.uuid_2_id(cuboid['uuid'])
 
             length = float(cuboid['dimensions.y'])
@@ -375,7 +380,10 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
             )
 
             if id not in frame_added or frame_added[id][0] < frame_id:
-                tracklets_ls.append(tr_array)
+                if cuboid['label'] in _new_sem2label_pandaset:
+                    new_label_cuboids.append(tr_array)
+                else:
+                    tracklets_ls.append(tr_array)
                 # cuboid_keeped.append(cuboid)
                 frame_added[id] = (frame_id, len(tracklets_ls) - 1)
                 nb_obj += 1
@@ -391,6 +399,7 @@ def get_obj_pose_tracking_pandaset(cuboids: pandaset.annotations.Cuboids , selec
         # if nb_obj == 0:
             # print(f'No object in frame {frame_id}')
             # exit()
+        tracklets_ls.extend(new_label_cuboids)
         n_obj_in_frame[frame_id - start_frame] = nb_obj
 
         
