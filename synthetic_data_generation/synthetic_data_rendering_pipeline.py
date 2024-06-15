@@ -139,6 +139,9 @@ class SyntheticDataRender:
             n_models_from_other_scenes = int(self.config.percentage_models_other_scene * n_trajectories)
 
             if self.config.generate_synthetic_trajectories:
+
+                # TODO: Filter tracklets here based on length > 1 and create obj_location_data_out accordingly
+
                 # Create synthetic object trajectories
                 indice, positions, yaws = scm.create_synthetic_trajectories(tracklets=tracklets, config=self.config, n_samples=79)
 
@@ -191,9 +194,10 @@ class SyntheticDataRender:
 
                 object_meta_tensor = scm.get_best_object_models_for_tracklets(pipeline=pipeline, angular_embeddings_tracklets=angular_embeddings_tracklets, models_from_other_scenes=models_from_other_scenes, select_object_model_weights=self.config.select_object_model_weights)
 
-                # Write the object model keys to the metadata
-                trajectory_indices = torch.tensor(trajectory_indices) + 1 # +1 to account for row for no object
-                obj_metadata[trajectory_indices, :4] = object_meta_tensor
+                if object_meta_tensor is not None:
+                    # Write the object model keys to the metadata
+                    trajectory_indices = torch.tensor(trajectory_indices) + 1 # +1 to account for row for no object
+                    obj_metadata[trajectory_indices, :4] = object_meta_tensor
 
             FOV = torch.tensor(([30, 26, 22]), dtype=torch.float32)
 

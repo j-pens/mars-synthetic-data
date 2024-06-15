@@ -58,7 +58,10 @@ def get_object_models_from_other_scenes(scene_config_manager: SceneConfigManager
 
     light_condition = original_scene_config.light_condition
 
-    compatible_scene_configs = scene_config_manager.get_scene_configs_filtered(light_condition=light_condition, method_name='mars-pandaset-nerfacto-object-wise-recon', exclude_scenes=[original_scene_config.scene_name])
+    if synthetic_data_pipeline_config.swap_object_models_within_scene:
+        compatible_scene_configs = scene_config_manager.get_scene_configs_filtered(light_condition=light_condition, method_name='mars-pandaset-nerfacto-object-wise-recon', scene_name=original_scene_config.scene_name)
+    else:
+        compatible_scene_configs = scene_config_manager.get_scene_configs_filtered(light_condition=light_condition, method_name='mars-pandaset-nerfacto-object-wise-recon', exclude_scenes=[original_scene_config.scene_name])
 
     random.shuffle(compatible_scene_configs)
 
@@ -90,7 +93,7 @@ def get_object_models_from_other_scenes(scene_config_manager: SceneConfigManager
             # len(cameras),
             obj_location_data.shape[0], # == len(cameras) for training images
             # obj_location_data.shape[1],
-            datamanager.dataparser.config.max_input_objects,
+            -1 , # datamanager.dataparser.config.max_input_objects,
             datamanager.dataparser.config.add_input_rows * 3
         )
         print(f'obj_location_data_dyn shape: {obj_location_data_dyn.shape}')

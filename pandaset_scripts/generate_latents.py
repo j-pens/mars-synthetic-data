@@ -1,8 +1,8 @@
 import torch
 
-filename = '../pandaset_latents/pandaset_init_seq011_80_frames.pt'
+filename = '../pandaset_latents/pandaset_init_seq012_80_frames.pt'
 frame_idx_list = list(range(80))
-object_id_range = range(0,201)
+object_id_range = range(0,500)
 
 
 indices = []

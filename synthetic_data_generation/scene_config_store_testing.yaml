@@ -1,0 +1,13 @@
+'012':
+- !SceneConfig
+  cameras:
+  - front_camera
+  - front_left_camera
+  - front_right_camera
+  - left_camera
+  - right_camera
+  light_condition: day
+  method_name: mars-pandaset-car-depth-recon
+  road_type: Not yet implemented.
+  scene_config_path: /zfs/penshorn/master_thesis/code/mars-synthetic-data/outputs/PandaSet/mars-pandaset-car-depth-recon/2024-02-20_210017/config.yml
+  scene_name: '012'

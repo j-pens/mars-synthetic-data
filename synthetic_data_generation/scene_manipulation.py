@@ -138,18 +138,18 @@ def get_indices_from_object_model_ids(obj_metadata, object_model_ids):
 def create_synthetic_trajectories(tracklets: list[BoundingBoxTracklet], config: sdpcm.SyntheticDataPipelineConfig, n_samples=79):
 
     parametrizations = [otg.get_parametrization_2d(tracklet, optimization_steps=config.spline_optimization_steps, add_noise=config.spline_add_noise_to_observations, noise_level=config.spline_max_noise,
-                                                spline_grid_class=CubicCatmullRomGrid1d, print_loss=config.print_spline_loss, with_optimizer=config.return_spline_optimizer) for tracklet in tracklets]
+                                                spline_grid_class=CubicCatmullRomGrid1d, print_loss=config.print_spline_loss, with_optimizer=config.return_spline_optimizer) if len(tracklet.x) > 1 else None for tracklet in tracklets]
     
-    new_indices_samples = [otg.sample_with_jitter_from_indices(tracklet.original_indices, jitter=0) for tracklet in tracklets]
+    new_indices_samples = [otg.sample_with_jitter_from_indices(tracklet.original_indices, jitter=0) if len(tracklet.x) > 1 else tracklet.original_indices for tracklet in tracklets]
 
     results = [parametrization(index_sample[1].unsqueeze(1)).squeeze().detach(
-    ) for index_sample, parametrization in zip(new_indices_samples, parametrizations)]
+    ) if parametrization is not None and len(index_sample) > 1 else None for index_sample, parametrization in zip(new_indices_samples, parametrizations)]
 
-    yaws = [otg.calculate_yaw(result) for result in results]
+    yaws = [otg.calculate_yaw(result) if result is not None and len(tracklet.x) > 1 else tracklet.yaw for result, tracklet in zip(results, tracklets)]
 
-    indices = [index_sample[0] for index_sample in new_indices_samples]
+    indices = [index_sample[0] if len(index_sample) > 0 else index_sample for index_sample in new_indices_samples]
 
-    results_original_height = [torch.cat((result, tracklet.z.unsqueeze(-1)), dim=1) for result, tracklet in zip(results, tracklets)]
+    results_original_height = [torch.cat((result, tracklet.z.unsqueeze(-1)), dim=-1) if result is not None and len(tracklet.x) > 1 else torch.cat((tracklet.x.unsqueeze(-1), tracklet.y.unsqueeze(-1), tracklet.z.unsqueeze(-1)), dim=-1) for result, tracklet in zip(results, tracklets)]
 
     return indices, results_original_height, yaws
 
@@ -249,7 +249,13 @@ def get_best_object_models_for_tracklets(pipeline, angular_embeddings_tracklets,
     
     object_dimensions_list = []
     object_model_keys_with_scene = []
+
+    print(f'Diff matrix: {diff_matrix.shape}: {diff_matrix}')
+
     for diffs_per_trajectory in diff_matrix:
+        if len(diffs_per_trajectory) == 0:
+            continue
+
         sorted_indice = diffs_per_trajectory.argsort()
 
         # Sample models via index here
@@ -261,6 +267,7 @@ def get_best_object_models_for_tracklets(pipeline, angular_embeddings_tracklets,
         n_indice = len(n_best_indice)
         possible_indices = [i for i in range(n_indice)]
         weights = select_object_model_weights[:n_indice]
+        print(f'Debug index selection: {n_best_indice}, {n_indice}, {possible_indices}, {weights}')
         selected_index_position = random.choices(possible_indices, weights=weights, k=1)[0]
         selected_index = sorted_indice[selected_index_position].item()
 
@@ -276,6 +283,9 @@ def get_best_object_models_for_tracklets(pipeline, angular_embeddings_tracklets,
 
         object_model_key_with_scene = oms.add_object_model_to_scene_graph(scene_graph=scene_graph, import_scene_name=scene_name, import_scene_checkpoint=scene_checkpoint, object_model_key=object_model_key)
         object_model_keys_with_scene.append(object_model_key_with_scene)
+
+    if len(object_model_keys_with_scene) == 0:
+        return None
 
     obj_key_tensor = torch.tensor(object_model_keys_with_scene)
     obj_dimensions_tensor = torch.stack(object_dimensions_list)

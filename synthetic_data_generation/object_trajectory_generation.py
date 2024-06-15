@@ -172,8 +172,9 @@ def sample_with_jitter(n, lower=0, upper=1.0, jitter=0.25):
 def sample_with_jitter_from_indices(indices, jitter=0):
     '''Sample len(indices) points from len(indices) bins around the indices with jitter in percent of the bin width with bin width < min distance between indice.'''
     n = indices.shape[0]
-    min_index_distance = torch.min(torch.diff(indices))
-    bin_width = min_index_distance / 80
+    # min_index_distance = torch.min(torch.diff(indices), dim=0)
+    # bin_width = min_index_distance / 80
+    bin_width = 1/80
 
     bin_centers = indices / 80
 
@@ -228,7 +229,10 @@ def get_parametrization(tracklet, optimization_steps=5000, add_noise=False, nois
     
 
 def get_parametrization_2d(tracklet, optimization_steps=5000, add_noise=False, noise_level=0.2, spline_grid_class=CubicCatmullRomGrid1d, print_loss=False, with_optimizer=False, resolution=10) -> Union[Tuple[CubicSplineGrid, torch.optim.Optimizer], CubicSplineGrid]:
-    
+
+    if len(tracklet.x) == 0:
+        return None
+
     # Limit to N_CONTROL_POINTS, or half of the tracklet length, whichever is smaller, but at least 2
     resolution = max(min(resolution, tracklet.x.shape[0]//7), 2)
 
@@ -267,6 +271,9 @@ def get_parametrization_2d(tracklet, optimization_steps=5000, add_noise=False, n
 
 def calculate_yaw(positions: torch.Tensor):
     '''Calculate yaw from positions'''
+
+    if len(positions.shape) < 2 or positions.shape[1] <= 1:
+        return -1
 
     # Calculate facing vectors
     facing_vectors = torch.diff(positions[:, :2], dim=0)
